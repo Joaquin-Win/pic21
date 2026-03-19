@@ -13,18 +13,18 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
- * Controlador de tareas (Task) — PIC21.
+ * Controlador de Tareas — PIC21
  *
- * Endpoints:
- *   POST /api/tasks/meeting/{meetingId}  → Crea y asigna tareas a los estudiantes ausentes
- *                                          Acceso: PROFESOR, AYUDANTE, ADMIN
- *
- *   GET  /api/tasks/my                   → Lista las tareas asignadas al usuario autenticado
- *                                          Acceso: cualquier usuario autenticado
- *
- * La validación de roles se delega al servicio mediante @PreAuthorize.
+ * POST   /api/tasks/meeting/{id}           → Crear y asignar tareas a ausentes (ADMIN, PROFESOR)
+ * GET    /api/tasks/my                     → Mis tareas asignadas (cualquier usuario)
+ * GET    /api/tasks                        → Todas las tareas según rol (ADMIN: todas, PROFESOR: propias)
+ * GET    /api/tasks/meeting/{id}/pending   → Pendientes por reunión (ADMIN, PROFESOR)
+ * PUT    /api/tasks/{id}                   → Editar tarea (ADMIN)
+ * DELETE /api/tasks/{id}                   → Eliminar tarea (ADMIN)
+ * PATCH  /api/tasks/{id}/status            → Cambiar estado (ADMIN)
  */
 @RestController
 @RequestMapping("/api/tasks")
@@ -33,31 +33,9 @@ public class TaskController {
 
     private final TaskService taskService;
 
-    // -----------------------------------------------------------------------
-    // POST /api/tasks/meeting/{meetingId}
-    // Crear y asignar tarea a estudiantes ausentes
-    // Solo PROFESOR, AYUDANTE, ADMIN
-    // -----------------------------------------------------------------------
-
-    /**
-     * Crea una tarea y la asigna automáticamente a todos los estudiantes
-     * que NO registraron asistencia en la reunión indicada.
-     *
-     * <p>Reglas del servicio:
-     * <ul>
-     *   <li>La reunión debe existir.</li>
-     *   <li>La reunión no puede estar en NO_INICIADA.</li>
-     *   <li>Debe haber al menos un estudiante ausente.</li>
-     *   <li>No se asignan tareas duplicadas (si el estudiante ya tiene una, se omite).</li>
-     * </ul>
-     *
-     * @param meetingId   ID de la reunión
-     * @param request     DTO con título, descripción y link de la tarea
-     * @param userDetails usuario autenticado inyectado por Spring Security
-     * @return 201 Created con la lista de tareas creadas
-     */
+    // ── Crear tareas para ausentes ─────────────────────────
     @PostMapping("/meeting/{meetingId}")
-    @PreAuthorize("hasAnyRole('PROFESOR','AYUDANTE','ADMIN')")
+    @PreAuthorize("hasAnyRole('PROFESOR','ADMIN')")
     public ResponseEntity<List<TaskResponse>> createForAbsent(
             @PathVariable Long meetingId,
             @Valid @RequestBody TaskRequest request,
@@ -68,25 +46,52 @@ public class TaskController {
         return ResponseEntity.status(HttpStatus.CREATED).body(tasks);
     }
 
-    // -----------------------------------------------------------------------
-    // GET /api/tasks/my
-    // Ver mis tareas — cualquier usuario autenticado
-    // -----------------------------------------------------------------------
-
-    /**
-     * Retorna todas las tareas asignadas al usuario autenticado.
-     *
-     * <p>Un ESTUDIANTE solo verá sus propias tareas.
-     * Un PROFESOR/AYUDANTE/ADMIN también verá las tareas que les asignaron a ellos
-     * (aunque normalmente no se les asignan tareas a estos roles).
-     *
-     * @param userDetails usuario autenticado inyectado por Spring Security
-     * @return 200 OK con lista de tareas
-     */
+    // ── Mis tareas (usuario autenticado) ───────────────────
     @GetMapping("/my")
     public ResponseEntity<List<TaskResponse>> getMyTasks(
             @AuthenticationPrincipal UserDetails userDetails) {
-
         return ResponseEntity.ok(taskService.findMyTasks(userDetails.getUsername()));
+    }
+
+    // ── Todas las tareas según rol ─────────────────────────
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR')")
+    public ResponseEntity<List<TaskResponse>> getAllByRole(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(taskService.findAllByRole(userDetails.getUsername()));
+    }
+
+    // ── Pendientes por reunión ─────────────────────────────
+    @GetMapping("/meeting/{meetingId}/pending")
+    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR')")
+    public ResponseEntity<List<TaskResponse>> getPendingByMeeting(@PathVariable Long meetingId) {
+        return ResponseEntity.ok(taskService.findPendingByMeeting(meetingId));
+    }
+
+    // ── Editar tarea (ADMIN) ───────────────────────────────
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<TaskResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody TaskRequest request) {
+        return ResponseEntity.ok(taskService.updateTask(id, request));
+    }
+
+    // ── Eliminar tarea (ADMIN) ─────────────────────────────
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        taskService.deleteTask(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ── Cambiar estado de tarea (ADMIN) ───────────────────
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<TaskResponse> changeStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        String status = body.get("status");
+        return ResponseEntity.ok(taskService.changeStatus(id, status));
     }
 }

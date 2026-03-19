@@ -13,6 +13,7 @@ const Router = (() => {
       '/meetings/:id': { page: MeetingDetailPage, title: 'Detalle de reunión', roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE'] },
       '/tasks':        { page: TasksPage,         title: 'Tareas',             roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE'] },
       '/users':        { page: UsersPage,         title: 'Usuarios',           roles: ['ADMIN'] },
+      '/files':        { page: FilesPage,         title: 'Archivos',           roles: ['ADMIN'] },
     };
   }
 

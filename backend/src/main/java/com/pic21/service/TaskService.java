@@ -19,15 +19,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Servicio de tareas para el módulo de gestión PIC21.
+ * Servicio de gestión de tareas para PIC21.
  *
- * Regla de negocio principal:
- *   Al crear tareas para una reunión, el sistema asigna automáticamente una tarea
- *   a CADA ESTUDIANTE que NO registró asistencia en esa reunión.
- *
- * Permisos:
- *   - Crear tareas: PROFESOR o AYUDANTE
- *   - Ver mis tareas: cualquier usuario autenticado (solo ve las suyas)
+ * Lógica de roles:
+ *   ADMIN    → ve y gestiona TODAS las tareas
+ *   PROFESOR → ve las tareas que él creó; puede crear nuevas
+ *   AYUDANTE → ve las tareas asignadas a él (como ESTUDIANTE); NO puede crear
+ *   ESTUDIANTE → ve las tareas asignadas a él
  */
 @Slf4j
 @Service
@@ -39,71 +37,47 @@ public class TaskService {
     private final UserRepository userRepository;
     private final AttendanceRepository attendanceRepository;
 
-    // -----------------------------------------------------------------------
-    // CREAR tareas — asignación automática a ausentes de la reunión
-    // -----------------------------------------------------------------------
-
-    /**
-     * Crea y asigna una tarea a todos los estudiantes que NO registraron asistencia
-     * en la reunión indicada.
-     *
-     * Validaciones:
-     *   - La reunión debe existir.
-     *   - La reunión debe estar BLOQUEADA o ACTIVA (no tiene sentido en NO_INICIADA).
-     *   - El creador debe ser encontrado por username (viene del JWT).
-     *   - Si un estudiante ya tiene tarea asignada para esa reunión, se omite (no se duplica).
-     *
-     * @param meetingId ID de la reunión
-     * @param request   DTO con título, descripción y link de la tarea
-     * @param creatorUsername username del usuario autenticado (PROFESOR/AYUDANTE)
-     * @return lista de tareas creadas (una por estudiante ausente)
-     */
+    // ── Crear tareas para ausentes de una reunión ──────────
     @Transactional
     public List<TaskResponse> createForAbsent(Long meetingId, TaskRequest request, String creatorUsername) {
-        // 1. Buscar la reunión
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Reunión", meetingId));
 
-        // 2. Validar que la reunión no esté en NO_INICIADA (no tiene asistencias todavía)
         if (meeting.getStatus() == MeetingStatus.NO_INICIADA) {
             throw new BusinessException(
-                    "No se pueden crear tareas para una reunión que aún no ha iniciado (NO_INICIADA). " +
-                    "La reunión debe estar ACTIVA o BLOQUEADA.");
+                    "No se pueden crear tareas para una reunión NO_INICIADA. Debe estar ACTIVA o BLOQUEADA.");
         }
 
-        // 3. Buscar al creador
         User creator = userRepository.findByUsername(creatorUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + creatorUsername));
 
-        // 4. Obtener IDs de usuarios que SÍ asistieron
+        // IDs de usuarios que SÍ asistieron
         List<Long> presentUserIds = attendanceRepository.findByMeetingWithDetails(meeting)
                 .stream()
                 .map(a -> a.getUser().getId())
                 .collect(Collectors.toList());
 
-        // 5. Obtener todos los estudiantes del sistema
+        // Todos los estudiantes del sistema
         List<User> allStudents = userRepository.findAll()
                 .stream()
-                .filter(u -> u.getRoles().stream()
-                        .anyMatch(r -> r.getName() == RoleName.ESTUDIANTE))
+                .filter(u -> u.getRoles().stream().anyMatch(r -> r.getName() == RoleName.ESTUDIANTE))
                 .collect(Collectors.toList());
 
         if (allStudents.isEmpty()) {
             throw new BusinessException("No hay estudiantes registrados en el sistema.");
         }
 
-        // 6. Filtrar ausentes (no en la lista de presentes)
+        // Ausentes = estudiantes que NO asistieron
         List<User> absentStudents = allStudents.stream()
                 .filter(u -> !presentUserIds.contains(u.getId()))
                 .collect(Collectors.toList());
 
         if (absentStudents.isEmpty()) {
             throw new BusinessException(
-                    "Todos los estudiantes asistieron a la reunión '" + meeting.getTitle() +
-                    "'. No hay ausentes para asignar tareas.");
+                    "Todos los estudiantes asistieron a '" + meeting.getTitle() + "'. Sin ausentes para asignar tareas.");
         }
 
-        // 7. Crear una tarea por cada ausente (ignorar si ya tiene tarea en esta reunión)
+        // Crear una tarea por ausente (sin duplicar)
         List<Task> createdTasks = absentStudents.stream()
                 .filter(student -> !taskRepository.existsByMeetingIdAndAssignedToId(meetingId, student.getId()))
                 .map(student -> Task.builder()
@@ -119,44 +93,91 @@ public class TaskService {
 
         if (createdTasks.isEmpty()) {
             throw new BusinessException(
-                    "Todos los estudiantes ausentes ya tienen una tarea asignada para la reunión '" +
-                    meeting.getTitle() + "'.");
+                    "Todos los estudiantes ausentes ya tienen una tarea asignada para '" + meeting.getTitle() + "'.");
         }
 
         List<Task> saved = taskRepository.saveAll(createdTasks);
-        log.info("Tareas creadas: {} tareas para reunión id={} por '{}'",
-                saved.size(), meetingId, creatorUsername);
-
-        return saved.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        log.info("Tareas creadas: {} para reunión id={} por '{}'", saved.size(), meetingId, creatorUsername);
+        return saved.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
-    // -----------------------------------------------------------------------
-    // MIS TAREAS — cualquier usuario autenticado ve solo las propias
-    // -----------------------------------------------------------------------
-
-    /**
-     * Retorna todas las tareas asignadas al usuario autenticado.
-     *
-     * @param username username del usuario autenticado
-     * @return lista de sus tareas, ordenadas por fecha de creación descendente
-     */
+    // ── Mis tareas asignadas ───────────────────────────────
     @Transactional(readOnly = true)
     public List<TaskResponse> findMyTasks(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + username));
-
         return taskRepository.findByAssignedToId(user.getId())
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
+    // ── Todas las tareas según rol ─────────────────────────
+    @Transactional(readOnly = true)
+    public List<TaskResponse> findAllByRole(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + username));
 
+        boolean isAdmin = user.getRoles().stream()
+                .anyMatch(r -> r.getName() == RoleName.ADMIN);
+
+        if (isAdmin) {
+            // ADMIN ve todas
+            return taskRepository.findAllWithDetails()
+                    .stream().map(this::mapToResponse).collect(Collectors.toList());
+        } else {
+            // PROFESOR ve las que creó
+            return taskRepository.findByCreatedByIdOrderByCreatedAtDesc(user.getId())
+                    .stream().map(this::mapToResponse).collect(Collectors.toList());
+        }
+    }
+
+    // ── Pendientes por reunión ─────────────────────────────
+    @Transactional(readOnly = true)
+    public List<TaskResponse> findPendingByMeeting(Long meetingId) {
+        if (!meetingRepository.existsById(meetingId)) {
+            throw new ResourceNotFoundException("Reunión", meetingId);
+        }
+        return taskRepository.findByMeetingIdAndStatus(meetingId, TaskStatus.PENDING)
+                .stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    // ── Editar tarea (ADMIN) ───────────────────────────────
+    @Transactional
+    public TaskResponse updateTask(Long id, TaskRequest request) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tarea", id));
+        task.setTitle(request.getTitle());
+        task.setDescription(request.getDescription());
+        task.setLink(request.getLink());
+        log.info("Tarea id={} actualizada", id);
+        return mapToResponse(taskRepository.save(task));
+    }
+
+    // ── Eliminar tarea (ADMIN) ─────────────────────────────
+    @Transactional
+    public void deleteTask(Long id) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tarea", id));
+        taskRepository.delete(task);
+        log.info("Tarea id={} eliminada", id);
+    }
+
+    // ── Cambiar estado (ADMIN) ─────────────────────────────
+    @Transactional
+    public TaskResponse changeStatus(Long id, String statusStr) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tarea", id));
+        TaskStatus newStatus;
+        try {
+            newStatus = TaskStatus.valueOf(statusStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("Estado inválido: " + statusStr + ". Válidos: PENDING, COMPLETED, CORRECTED");
+        }
+        task.setStatus(newStatus);
+        log.info("Tarea id={} estado cambiado a {}", id, newStatus);
+        return mapToResponse(taskRepository.save(task));
+    }
+
+    // ── Helpers ────────────────────────────────────────────
     private TaskResponse mapToResponse(Task t) {
         return TaskResponse.builder()
                 .id(t.getId())

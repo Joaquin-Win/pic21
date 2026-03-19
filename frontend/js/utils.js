@@ -68,6 +68,9 @@ function statusBadge(status) {
     ACTIVA:      { cls: 'badge-active',   label: 'Activa'      },
     BLOQUEADA:   { cls: 'badge-blocked',  label: 'Bloqueada'   },
     PENDING:     { cls: 'badge-pending',  label: 'Pendiente'   },
+    COMPLETED:   { cls: 'badge-done',     label: 'Completada'  },
+    CORRECTED:   { cls: 'badge-active',   label: 'Corregida'   },
+    // Legacy (backward compat)
     IN_PROGRESS: { cls: 'badge-pending',  label: 'En progreso' },
     DONE:        { cls: 'badge-done',     label: 'Completada'  },
     CANCELLED:   { cls: 'badge-inactive', label: 'Cancelada'   },

@@ -43,10 +43,9 @@ const MeetingDetailPage = (() => {
           </div>
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
-          ${meeting.hasPdfFile ? `<button class="btn btn-secondary" id="btnDownloadPdf" title="${escHtml(meeting.pdfFileName)}">📄 Descargar PDF</button>` : ''}
           ${isAdminOrProf ? `
-            <input type="file" id="pdfFileInput" accept="application/pdf" style="display:none;" />
-            <button class="btn btn-secondary" id="btnUploadPdf">⬆ Subir PDF</button>
+            <input type="file" id="pdfFileInput" accept="application/pdf" multiple style="display:none;" />
+            <button class="btn btn-secondary" id="btnUploadPdf">⬆ Subir PDF(s)</button>
           ` : ''}
           ${canAttend ? `<button class="btn btn-success" id="btnAttend">✅ Registrar mi asistencia</button>` : ''}
           ${isAdminOrProf ? `<button class="btn btn-secondary" id="btnExcel">📥 Exportar Excel</button>` : ''}
@@ -63,6 +62,17 @@ const MeetingDetailPage = (() => {
             <div><div class="text-xs" style="color:var(--text-muted);margin-bottom:.25rem;">DESCRIPCIÓN</div>${escHtml(meeting.description || 'Sin descripción')}</div>
             ${canManage ? `<div><div class="text-xs" style="color:var(--text-muted);margin-bottom:.25rem;">ASISTENTES</div><strong>${arr.length}</strong></div>` : ''}
           </div>
+        </div>
+      </div>
+
+      <!-- PDFs adjuntos -->
+      <div class="card" style="margin-bottom:1.5rem;" id="pdfSection">
+        <div class="card-header">
+          <span class="card-title">📄 Archivos PDF</span>
+          <span id="pdfCount" class="text-sm" style="color:var(--text-muted)">Cargando...</span>
+        </div>
+        <div class="card-body" id="pdfListBody">
+          <div class="loading"><div class="spinner"></div></div>
         </div>
       </div>
 
@@ -89,52 +99,34 @@ const MeetingDetailPage = (() => {
       openAttendanceFormModal(meeting, canManage, container);
     });
 
-    // Bind PDF upload/download
+    // Bind PDF upload (multi-file)
     document.getElementById('btnUploadPdf')?.addEventListener('click', () => {
       document.getElementById('pdfFileInput').click();
     });
 
     document.getElementById('pdfFileInput')?.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      if (file.type !== 'application/pdf') {
-        Toast.error('Solo se permiten archivos PDF', '');
-        return;
-      }
-      
+      const files = Array.from(e.target.files);
+      if (!files.length) return;
       const btn = document.getElementById('btnUploadPdf');
       btn.disabled = true;
       btn.textContent = 'Subiendo...';
-      
       const formData = new FormData();
-      formData.append('file', file);
-      
+      files.forEach(f => formData.append('files', f));
       try {
-        await Api.post(`/meetings/${meeting.id}/pdf`, formData);
-        Toast.success('PDF subido exitosamente', file.name);
-        loadDetail(document.getElementById('page-content'), meeting.id); // Reload full page to update buttons
+        await Api.post(`/meetings/${meeting.id}/files`, formData);
+        Toast.success(`${files.length} PDF(s) subidos`, files.map(f=>f.name).join(', '));
+        loadPdfs(meeting.id, isAdminOrProf);
       } catch (err) {
-        Toast.error('Error al subir PDF', err.message);
+        Toast.error('Error al subir PDF(s)', err.message);
+      } finally {
         btn.disabled = false;
-        btn.textContent = '⬆ Subir PDF';
+        btn.textContent = '⬆ Subir PDF(s)';
+        e.target.value = '';
       }
     });
 
-    document.getElementById('btnDownloadPdf')?.addEventListener('click', async () => {
-      const btn = document.getElementById('btnDownloadPdf');
-      btn.disabled = true;
-      btn.textContent = 'Descargando...';
-      try {
-        const blob = await Api.get(`/meetings/${meeting.id}/pdf`, { binary: true });
-        downloadBlob(blob, meeting.pdfFileName || 'documento.pdf');
-        Toast.success('Descarga completada', '');
-      } catch (err) {
-        Toast.error('Error al descargar', err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '📄 Descargar PDF';
-      }
-    });
+    // Load PDFs section
+    loadPdfs(meeting.id, isAdminOrProf);
 
     // Bind Excel export
     document.getElementById('btnExcel')?.addEventListener('click', async () => {
@@ -178,6 +170,47 @@ const MeetingDetailPage = (() => {
           </tbody>
         </table>
       </div>`;
+  }
+
+  // ── Cargar y mostrar lista de PDFs ─────────────────────
+  async function loadPdfs(meetingId, canDelete) {
+    const body  = document.getElementById('pdfListBody');
+    const count = document.getElementById('pdfCount');
+    if (!body) return;
+    try {
+      const files = await Api.get(`/meetings/${meetingId}/files`);
+      const arr = Array.isArray(files) ? files : [];
+      if (count) count.textContent = arr.length + ' archivo(s)';
+      if (!arr.length) {
+        body.innerHTML = '<p style="color:var(--text-muted)">Sin archivos adjuntos aún.</p>';
+        return;
+      }
+      const fmtSize = b => b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(1)+' MB';
+      body.innerHTML = `<div class="table-wrapper"><table>
+        <thead><tr><th>Nombre</th><th>Subido por</th><th>Fecha</th><th>Tamaño</th><th style="text-align:center">Acciones</th></tr></thead>
+        <tbody>${arr.map(f => `<tr>
+          <td>📄 ${escHtml(f.fileName)}</td>
+          <td style="font-size:.85rem">${escHtml(f.uploadedByUsername||'—')}</td>
+          <td style="font-size:.85rem">${formatDate(f.uploadedAt)}</td>
+          <td style="font-size:.85rem">${f.fileSize ? fmtSize(f.fileSize) : '—'}</td>
+          <td style="text-align:center;white-space:nowrap">
+            <button class="btn btn-secondary btn-sm pdf-dl" data-fid="${f.id}" data-fn="${escHtml(f.fileName)}">⬇ Descargar</button>
+            ${canDelete ? `<button class="btn btn-secondary btn-sm pdf-del" data-fid="${f.id}" data-fn="${escHtml(f.fileName)}" style="color:#ef4444;margin-left:.25rem">🗑</button>` : ''}
+          </td></tr>`).join('')}</tbody>
+      </table></div>`;
+      body.querySelectorAll('.pdf-dl').forEach(btn => btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try { const blob = await Api.get(`/files/${btn.dataset.fid}/download`, { binary: true }); downloadBlob(blob, btn.dataset.fn); Toast.success('Descarga completada', btn.dataset.fn); }
+        catch(err) { Toast.error('Error', err.message); } finally { btn.disabled = false; }
+      }));
+      body.querySelectorAll('.pdf-del').forEach(btn => btn.addEventListener('click', async () => {
+        if (!confirm('\u00bfEliminar "' + btn.dataset.fn + '"?')) return;
+        try { await Api.delete(`/files/${btn.dataset.fid}`); Toast.success('Eliminado', btn.dataset.fn); loadPdfs(meetingId, canDelete); }
+        catch(err) { Toast.error('Error', err.message); }
+      }));
+    } catch (err) {
+      if (body) body.innerHTML = '<p style="color:#ef4444">Error al cargar archivos.</p>';
+    }
   }
 
   function openCreateTaskModal(meetingId, meetingTitle) {

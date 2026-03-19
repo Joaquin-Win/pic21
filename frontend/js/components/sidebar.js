@@ -23,6 +23,7 @@ const Sidebar = (() => {
       section: 'Administración',
       items: [
         { label: 'Usuarios', href: '/users', icon: '👥', roles: ['ADMIN'] },
+        { label: 'Archivos', href: '/files', icon: '📁', roles: ['ADMIN'] },
       ]
     },
   ];
