@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   PIC21 — Login Page (con registro público)
+   PIC UES-SIGLO21 — Login Page (con registro público)
 ═══════════════════════════════════════════════════════ */
 
 const LoginPage = (() => {
@@ -15,8 +15,8 @@ const LoginPage = (() => {
     container.innerHTML = `
       <div class="auth-card">
         <div class="auth-logo">
-          <div class="auth-logo-icon">P</div>
-          <h1>PIC21</h1>
+          <img src="img/logos21.png" alt="PIC UES-SIGLO21" class="auth-logo-img" style="width:72px;height:72px;border-radius:16px;object-fit:contain;" />
+          <h1>PIC UES-SIGLO21</h1>
           <p>Sistema de Gestión de Reuniones y Asistencias</p>
         </div>
         <form class="auth-form" id="loginForm" autocomplete="on">
@@ -44,7 +44,7 @@ const LoginPage = (() => {
           </button>
         </div>
         <div class="auth-footer">
-          Sistema PIC21 &mdash; Acceso restringido al personal autorizado
+          Sistema PIC UES-SIGLO21 &mdash; Acceso restringido al personal autorizado
         </div>
       </div>`;
 
@@ -87,8 +87,8 @@ const LoginPage = (() => {
     container.innerHTML = `
       <div class="auth-card">
         <div class="auth-logo">
-          <div class="auth-logo-icon">P</div>
-          <h1>PIC21</h1>
+          <img src="img/logos21.png" alt="PIC UES-SIGLO21" class="auth-logo-img" style="width:72px;height:72px;border-radius:16px;object-fit:contain;" />
+          <h1>PIC UES-SIGLO21</h1>
           <p>Registrar nueva cuenta</p>
         </div>
         <form class="auth-form" id="registerForm" autocomplete="off">
@@ -113,7 +113,19 @@ const LoginPage = (() => {
           <div class="form-group">
             <label class="form-label">Contraseña *</label>
             <input class="form-control" id="regPassword" type="password" placeholder="Mínimo 6 caracteres" required minlength="6" />
+            <p style="font-size:.78rem;color:#d97706;margin-top:.35rem;line-height:1.3;">
+              ⚠️ No utilices la misma contraseña que tu cuenta institucional (Universidad Siglo 21).
+            </p>
           </div>
+
+          <!-- Checkbox Términos y Condiciones -->
+          <div class="form-group" style="display:flex;align-items:flex-start;gap:.5rem;margin-top:.25rem;">
+            <input type="checkbox" id="regTerms" style="margin-top:3px;width:18px;height:18px;cursor:pointer;" />
+            <label for="regTerms" style="font-size:.85rem;cursor:pointer;line-height:1.4;">
+              Acepto los <a href="#" id="openTerms" style="color:var(--primary);text-decoration:underline;font-weight:500;">términos y condiciones</a>
+            </label>
+          </div>
+
           <div id="registerError" class="auth-error hidden">
             <span>⚠️</span>
             <span id="registerErrorMsg">Error</span>
@@ -134,7 +146,35 @@ const LoginPage = (() => {
 
     document.getElementById('registerForm')?.addEventListener('submit', handleRegister);
     document.getElementById('btnBackLogin')?.addEventListener('click', () => renderLogin(container));
+    document.getElementById('openTerms')?.addEventListener('click', (e) => { e.preventDefault(); openTermsModal(); });
     document.getElementById('regFirstName')?.focus();
+  }
+
+  // ── MODAL TÉRMINOS Y CONDICIONES ───────────────────────
+  function openTermsModal() {
+    Modal.open('Términos y Condiciones', `
+      <div style="max-height:400px;overflow-y:auto;font-size:.9rem;line-height:1.6;padding-right:.5rem;">
+        <h4 style="margin-bottom:.5rem;">1. Uso del Sistema</h4>
+        <p>El sistema PIC UES-SIGLO21 es una herramienta de gestión académica destinada exclusivamente al registro de asistencias, reuniones y tareas vinculadas a las actividades del programa. Su uso está limitado a fines educativos y organizativos.</p>
+
+        <h4 style="margin-top:1rem;margin-bottom:.5rem;">2. Privacidad de Datos</h4>
+        <p>Los datos personales proporcionados (nombre, apellido, correo electrónico, legajo y carrera) serán utilizados únicamente para la gestión interna del sistema. No se compartirán con terceros sin consentimiento previo del usuario, salvo cuando sea requerido por la institución para fines académicos.</p>
+
+        <h4 style="margin-top:1rem;margin-bottom:.5rem;">3. Responsabilidad del Usuario</h4>
+        <p>Cada usuario es responsable de la veracidad de la información que ingresa en el sistema. El uso indebido, la suplantación de identidad o el registro de asistencias falsas podrá conllevar sanciones académicas conforme al reglamento institucional.</p>
+
+        <h4 style="margin-top:1rem;margin-bottom:.5rem;">4. Seguridad de Credenciales</h4>
+        <p>El usuario se compromete a mantener la confidencialidad de sus credenciales de acceso (usuario y contraseña). Se recomienda enfáticamente no utilizar la misma contraseña que la cuenta institucional de Universidad Siglo 21. El sistema no se hace responsable por accesos no autorizados derivados de contraseñas compartidas o débiles.</p>
+
+        <h4 style="margin-top:1rem;margin-bottom:.5rem;">5. Uso Académico</h4>
+        <p>Este sistema ha sido desarrollado con fines estrictamente académicos en el marco del Proyecto Integrador Comunitario (PIC) de la Universidad Empresarial Siglo 21. Los datos almacenados se utilizan para garantizar la trazabilidad y transparencia de las actividades del programa.</p>
+
+        <h4 style="margin-top:1rem;margin-bottom:.5rem;">6. Modificaciones</h4>
+        <p>Los administradores del sistema se reservan el derecho de modificar estos términos y condiciones en cualquier momento. Los cambios serán comunicados a los usuarios a través del sistema.</p>
+      </div>
+      <div class="form-actions" style="margin-top:1rem;">
+        <button type="button" class="btn btn-primary" onclick="Modal.close()" style="width:100%;">Entendido</button>
+      </div>`);
   }
 
   async function handleRegister(e) {
@@ -142,6 +182,14 @@ const LoginPage = (() => {
     const btn    = document.getElementById('registerBtn');
     const errEl  = document.getElementById('registerError');
     const errMsg = document.getElementById('registerErrorMsg');
+    const terms  = document.getElementById('regTerms');
+
+    // Validar checkbox de T&C
+    if (!terms.checked) {
+      errMsg.textContent = 'Debés aceptar los términos y condiciones para registrarte.';
+      errEl.classList.remove('hidden');
+      return;
+    }
 
     btn.disabled = true;
     setHTML('#registerBtnText', '<span class="spinner" style="width:18px;height:18px;border-width:2px;display:inline-block;"></span> Registrando...');

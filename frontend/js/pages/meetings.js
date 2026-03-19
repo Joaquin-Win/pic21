@@ -129,7 +129,7 @@ const MeetingsPage = (() => {
         </div>
         <div class="meeting-card-meta">
           ${m.scheduledAt ? `<span>📅 ${formatDate(m.scheduledAt)}</span>` : ''}
-          ${m.accessCode  ? `<span>🔑 Código: <strong>${escHtml(m.accessCode)}</strong></span>` : ''}
+          ${m.accessCode  ? `<span>🔗 <a href="${escHtml(m.accessCode)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;">Link de reunión</a></span>` : ''}
           ${m.description ? `<span>📝 ${escHtml(m.description)}</span>` : ''}
           <span>👤 ${escHtml(m.createdBy || '—')}</span>
         </div>
@@ -154,8 +154,8 @@ const MeetingsPage = (() => {
           <input class="form-control" id="mDate" type="datetime-local" required />
         </div>
         <div class="form-group">
-          <label class="form-label">Código de acceso</label>
-          <input class="form-control" id="mCode" placeholder="Ej: ABC123 (opcional)" maxlength="20" />
+          <label class="form-label">Link de reunión</label>
+          <input class="form-control" id="mCode" type="url" placeholder="Ej: https://meet.google.com/xxx-xxx" maxlength="500" />
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
@@ -207,8 +207,8 @@ const MeetingsPage = (() => {
                  value="${m.scheduledAt ? m.scheduledAt.slice(0,16) : ''}" required />
         </div>
         <div class="form-group">
-          <label class="form-label">Código de acceso</label>
-          <input class="form-control" id="eCode" value="${escHtml(m.accessCode || '')}" maxlength="20" />
+          <label class="form-label">Link de reunión</label>
+          <input class="form-control" id="eCode" type="url" value="${escHtml(m.accessCode || '')}" maxlength="500" placeholder="Ej: https://meet.google.com/xxx-xxx" />
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
