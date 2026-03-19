@@ -13,15 +13,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 /**
  * Inicializa datos necesarios al arrancar la aplicación:
  * - Crea los 4 roles si no existen
- * - Crea el usuario administrador por defecto si no existe
- *
- * Usuario: admin / Contraseña: admin123
- * IMPORTANTE: Cambiar la contraseña en producción.
+ * - Crea o actualiza el usuario administrador
  */
 @Slf4j
 @Component
@@ -32,11 +30,14 @@ public class DataInitializer implements ApplicationRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    /** Contraseña del admin — se aplica al crear o si no coincide. */
+    private static final String ADMIN_PASSWORD = "msjj2023";
+
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
         initRoles();
-        initUsers();
+        initAdmin();
     }
 
     private void initRoles() {
@@ -54,36 +55,39 @@ public class DataInitializer implements ApplicationRunner {
         }
     }
 
-    private void initUsers() {
-        createUserIfNotFound("admin", "admin@pic21.com", "admin123", "Admin", "Admin", Role.RoleName.ADMIN);
-        createUserIfNotFound("profesor", "profesor@pic21.com", "prof123", "Profesor", "Test", Role.RoleName.PROFESOR);
-        createUserIfNotFound("ayudante", "ayudante@pic21.com", "ayu123", "Ayudante", "Test", Role.RoleName.AYUDANTE);
-        createUserIfNotFound("estudiante", "estudiante@pic21.com", "est123", "Estudiante", "Test", Role.RoleName.ESTUDIANTE);
-    }
-
-    private void createUserIfNotFound(String username, String email, String password, String firstName, String lastName, Role.RoleName roleName) {
-        if (userRepository.existsByUsername(username)) {
-            log.debug("Usuario {} ya existe, omitiendo.", username);
+    private void initAdmin() {
+        Optional<User> existing = userRepository.findByUsername("admin");
+        if (existing.isPresent()) {
+            User admin = existing.get();
+            // Actualizar la contraseña si cambió
+            if (!passwordEncoder.matches(ADMIN_PASSWORD, admin.getPassword())) {
+                admin.setPassword(passwordEncoder.encode(ADMIN_PASSWORD));
+                userRepository.save(admin);
+                log.info("Contraseña del admin actualizada.");
+            } else {
+                log.debug("Admin ya existe con la contraseña correcta, omitiendo.");
+            }
             return;
         }
 
-        Role role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new IllegalStateException("Rol " + roleName + " no encontrado"));
+        // Si el admin no existe, crearlo
+        Role role = roleRepository.findByName(Role.RoleName.ADMIN)
+                .orElseThrow(() -> new IllegalStateException("Rol ADMIN no encontrado"));
 
         Set<Role> roles = new HashSet<>();
         roles.add(role);
 
-        User user = User.builder()
-                .username(username)
-                .email(email)
-                .password(passwordEncoder.encode(password))
-                .firstName(firstName)
-                .lastName(lastName)
+        User admin = User.builder()
+                .username("admin")
+                .email("admin@pic21.com")
+                .password(passwordEncoder.encode(ADMIN_PASSWORD))
+                .firstName("Admin")
+                .lastName("Admin")
                 .enabled(true)
                 .roles(roles)
                 .build();
 
-        userRepository.save(user);
-        log.info("Usuario {} creado como {}", username, roleName);
+        userRepository.save(admin);
+        log.info("Usuario admin creado.");
     }
 }

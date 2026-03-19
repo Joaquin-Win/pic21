@@ -26,8 +26,7 @@ public class MeetingRequest {
     private LocalDateTime scheduledAt;
 
     /**
-     * Código de acceso opcional para la reunión.
+     * Link de reunión opcional (Google Meet, Zoom, Teams, etc.)
      */
-    @Size(max = 30, message = "El código de acceso no puede superar los 30 caracteres")
     private String accessCode;
 }
