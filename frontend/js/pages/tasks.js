@@ -64,20 +64,24 @@ const TasksPage = (() => {
   }
 
   async function setupCreateTaskForm() {
-    // Load meetings for dropdown
+    // Load meetings for dropdown — backend returns a Page object, extract .content
     try {
-      const meetings = await Api.get('/meetings');
-      const select = document.getElementById('taskMeetingId');
+      const paged   = await Api.get('/meetings?size=200&sort=scheduledAt,desc');
+      const list    = Array.isArray(paged) ? paged : (paged?.content ?? []);
+      const select  = document.getElementById('taskMeetingId');
       if (!select) return;
-      if (!meetings?.length) {
+      if (!list.length) {
         select.innerHTML = '<option value="">Sin reuniones disponibles</option>';
       } else {
-        select.innerHTML = meetings.map(m =>
-          `<option value="${m.id}">[${m.status}] ${escHtml(m.title)}</option>`
-        ).join('');
+        select.innerHTML =
+          '<option value="">— Seleccioná una reunión —</option>' +
+          list.map(m =>
+            `<option value="${m.id}">[${m.status}] ${escHtml(m.title)}</option>`
+          ).join('');
       }
     } catch (err) {
-      document.getElementById('taskMeetingId').innerHTML = '<option value="">Error al cargar</option>';
+      const sel = document.getElementById('taskMeetingId');
+      if (sel) sel.innerHTML = '<option value="">Error al cargar reuniones</option>';
     }
 
     // Form submit

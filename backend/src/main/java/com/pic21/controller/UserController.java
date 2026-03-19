@@ -1,7 +1,9 @@
 package com.pic21.controller;
 
+import com.pic21.dto.request.UpdateUserRequest;
 import com.pic21.dto.response.UserResponse;
 import com.pic21.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,6 +40,17 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.findById(id));
+    }
+
+    /**
+     * Actualiza el perfil (nombre, apellido, email, username) de un usuario.
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponse> updateProfile(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateUserRequest request,
+            @AuthenticationPrincipal UserDetails me) {
+        return ResponseEntity.ok(userService.updateProfile(id, request, me.getUsername()));
     }
 
     /**

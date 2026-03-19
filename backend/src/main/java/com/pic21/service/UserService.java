@@ -2,6 +2,7 @@ package com.pic21.service;
 
 import com.pic21.domain.Role;
 import com.pic21.domain.User;
+import com.pic21.dto.request.UpdateUserRequest;
 import com.pic21.dto.response.UserResponse;
 import com.pic21.exception.BusinessException;
 import com.pic21.exception.ResourceNotFoundException;
@@ -78,6 +79,41 @@ public class UserService {
 
         user.setRoles(newRoles);
         log.info("Roles actualizados para usuario '{}': {}", user.getUsername(), roleNames);
+        return mapToResponse(userRepository.save(user));
+    }
+
+    // -----------------------------------------------------------------------
+    // Editar perfil (nombre, apellido, email, username)
+    // -----------------------------------------------------------------------
+
+    @Transactional
+    public UserResponse updateProfile(Long id, UpdateUserRequest request, String adminUsername) {
+        User user = findUserOrThrow(id);
+
+        // Validar unicidad de email si cambió
+        if (!user.getEmail().equalsIgnoreCase(request.getEmail())) {
+            userRepository.findByEmail(request.getEmail()).ifPresent(existing -> {
+                if (!existing.getId().equals(id)) {
+                    throw new BusinessException("El email ya está en uso por otro usuario.");
+                }
+            });
+        }
+
+        // Validar unicidad de username si cambió
+        if (!user.getUsername().equalsIgnoreCase(request.getUsername())) {
+            userRepository.findByUsername(request.getUsername()).ifPresent(existing -> {
+                if (!existing.getId().equals(id)) {
+                    throw new BusinessException("El nombre de usuario ya existe.");
+                }
+            });
+        }
+
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setEmail(request.getEmail());
+        user.setUsername(request.getUsername());
+
+        log.info("Perfil del usuario id={} actualizado por '{}'", id, adminUsername);
         return mapToResponse(userRepository.save(user));
     }
 

@@ -1,5 +1,11 @@
 /* ═══════════════════════════════════════════════════════
    PIC21 — Users Management Page (solo ADMIN)
+   Funcionalidades:
+     - Listar todos los usuarios
+     - Editar perfil (nombre, apellido, email, username)
+     - Editar roles
+     - Habilitar / deshabilitar
+     - Eliminar
 ═══════════════════════════════════════════════════════ */
 
 const UsersPage = (() => {
@@ -71,7 +77,8 @@ const UsersPage = (() => {
         const id   = Number(btn.dataset.id);
         const user = allUsers.find(u => u.id === id);
         const action = btn.dataset.action;
-        if (action === 'roles')   openEditRolesModal(user);
+        if      (action === 'edit')   openEditProfileModal(user);
+        else if (action === 'roles')  openEditRolesModal(user);
         else if (action === 'toggle') toggleUser(id, user?.username);
         else if (action === 'delete') deleteUser(id, user?.username);
       });
@@ -93,19 +100,75 @@ const UsersPage = (() => {
         <td style="font-size:0.85rem">${escHtml(u.email || '—')}</td>
         <td>${roleBadges || '—'}</td>
         <td>${statusBadgeHtml}</td>
-        <td style="text-align:center;white-space:nowrap">
+        <td style="text-align:center;white-space:nowrap;display:flex;gap:.25rem;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" data-action="edit" data-id="${u.id}">
+            ✏️ Editar
+          </button>
           <button class="btn btn-secondary btn-sm" data-action="roles" data-id="${u.id}" ${isSelf ? 'disabled title="No podés modificar tus propios roles"' : ''}>
-            ✏️ Roles
+            🎭 Roles
           </button>
           <button class="btn btn-secondary btn-sm" data-action="toggle" data-id="${u.id}" ${isSelf ? 'disabled' : ''}>
-            ${u.enabled ? '🔒 Deshabilitar' : '✅ Habilitar'}
+            ${u.enabled ? '🔒 Deshab.' : '✅ Habilitar'}
           </button>
           <button class="btn btn-secondary btn-sm" data-action="delete" data-id="${u.id}"
             style="color:#ef4444" ${isSelf ? 'disabled title="No podés eliminar tu propia cuenta"' : ''}>
-            🗑 Eliminar
+            🗑
           </button>
         </td>
       </tr>`;
+  }
+
+  // ── Edit Profile Modal ─────────────────────────────────
+  function openEditProfileModal(user) {
+    if (!user) return;
+
+    Modal.open(`Editar perfil — ${user.username}`, `
+      <form id="editProfileForm">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="form-group">
+            <label class="form-label">Nombre *</label>
+            <input class="form-control" id="epFirstName" value="${escHtml(user.firstName || '')}" required maxlength="100" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Apellido *</label>
+            <input class="form-control" id="epLastName" value="${escHtml(user.lastName || '')}" required maxlength="100" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre de usuario *</label>
+          <input class="form-control" id="epUsername" value="${escHtml(user.username || '')}" required minlength="3" maxlength="50" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email *</label>
+          <input class="form-control" id="epEmail" type="email" value="${escHtml(user.email || '')}" required maxlength="150" />
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="saveProfileBtn">Guardar cambios</button>
+        </div>
+      </form>`);
+
+    document.getElementById('editProfileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('saveProfileBtn');
+      btn.disabled = true;
+      btn.textContent = 'Guardando...';
+      try {
+        await Api.put(`/users/${user.id}`, {
+          firstName: document.getElementById('epFirstName').value.trim(),
+          lastName:  document.getElementById('epLastName').value.trim(),
+          username:  document.getElementById('epUsername').value.trim(),
+          email:     document.getElementById('epEmail').value.trim(),
+        });
+        Modal.close();
+        Toast.success('Perfil actualizado', `${document.getElementById('epUsername')?.value || user.username}`);
+        await loadUsers();
+      } catch (err) {
+        Toast.error('Error al actualizar', err.message);
+        btn.disabled = false;
+        btn.textContent = 'Guardar cambios';
+      }
+    });
   }
 
   // ── Edit Roles Modal ───────────────────────────────────
