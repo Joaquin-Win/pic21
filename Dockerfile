@@ -1,4 +1,4 @@
-# ── Etapa 1: Compilar con Maven (instalado en la imagen) ─────
+# ── Etapa 1: Compilar con Maven ───────────────────────────────
 FROM eclipse-temurin:17-jdk-alpine AS build
 WORKDIR /app
 
@@ -11,7 +11,11 @@ COPY backend/pom.xml .
 # Descargar dependencias (se cachea si pom.xml no cambia)
 RUN mvn dependency:go-offline -B
 
-# Copiar código fuente y compilar
+# Copiar frontend al directorio de recursos estáticos de Spring Boot
+# Así el JAR sirve el frontend directamente en /
+COPY frontend/ src/main/resources/static/
+
+# Copiar código fuente Java y compilar (incluye los archivos estáticos del frontend)
 COPY backend/src ./src
 RUN mvn package -DskipTests -B
 
