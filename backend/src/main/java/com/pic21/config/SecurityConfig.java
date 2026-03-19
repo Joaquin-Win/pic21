@@ -60,8 +60,8 @@ public class SecurityConfig {
                 .requestMatchers("/error").permitAll()
                 // H2 Console (solo desarrollo)
                 .requestMatchers("/h2-console/**").permitAll()
-                // Frontend estático — index.html, CSS, JS, favicon
-                .requestMatchers("/", "/index.html", "/css/**", "/js/**",
+                // Frontend estático — index.html, CSS, JS, imágenes, favicon
+                .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/img/**",
                                  "/*.ico", "/*.png", "/*.svg").permitAll()
                 // ── Todo lo demás requiere JWT ───────────────────────────────────
                 .anyRequest().authenticated()
