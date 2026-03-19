@@ -90,13 +90,23 @@ public class MeetingService {
         if (!meetingRepository.existsById(id)) {
             throw new ResourceNotFoundException("Reunión", id);
         }
+        // 1. Eliminar asistencias
         entityManager.createNativeQuery("DELETE FROM attendances WHERE meeting_id = :id")
                 .setParameter("id", id).executeUpdate();
+        // 2. Eliminar task_assignments ANTES que tasks (respeta FK task_assignments.task_id → tasks.id)
+        entityManager.createNativeQuery(
+                "DELETE FROM task_assignments WHERE task_id IN (SELECT id FROM tasks WHERE meeting_id = :id)")
+                .setParameter("id", id).executeUpdate();
+        // 3. Eliminar tasks
         entityManager.createNativeQuery("DELETE FROM tasks WHERE meeting_id = :id")
                 .setParameter("id", id).executeUpdate();
+        // 4. Eliminar archivos PDF asociados
+        entityManager.createNativeQuery("DELETE FROM meeting_files WHERE meeting_id = :id")
+                .setParameter("id", id).executeUpdate();
+        // 5. Eliminar la reunión
         entityManager.createNativeQuery("DELETE FROM meetings WHERE id = :id")
                 .setParameter("id", id).executeUpdate();
-        log.info("Reunión eliminada: id={}", id);
+        log.info("Reunión id={} eliminada con attendances, task_assignments, tasks y files", id);
     }
 
     // -----------------------------------------------------------------------
