@@ -1,0 +1,31 @@
+package com.pic21.repository;
+
+import com.pic21.domain.TaskAssignment;
+import com.pic21.domain.TaskStatus;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, Long> {
+
+    /** Asignaciones de una tarea general (con detalles de usuario). */
+    @Query("SELECT a FROM TaskAssignment a JOIN FETCH a.assignedTo u WHERE a.task.id = :taskId ORDER BY u.lastName, u.firstName")
+    List<TaskAssignment> findByTaskIdWithUser(@Param("taskId") Long taskId);
+
+    /** Tareas asignadas a un usuario específico (mis tareas). */
+    @Query("SELECT a FROM TaskAssignment a JOIN FETCH a.task t JOIN FETCH t.meeting m JOIN FETCH t.createdBy cb WHERE a.assignedTo.id = :userId ORDER BY a.createdAt DESC")
+    List<TaskAssignment> findByAssignedToId(@Param("userId") Long userId);
+
+    /** Verifica si ya existe asignación de esta tarea para este usuario. */
+    boolean existsByTaskIdAndAssignedToId(Long taskId, Long userId);
+
+    /** Cuenta de asignaciones por tarea. */
+    long countByTaskId(Long taskId);
+
+    /** Cuenta de asignaciones pendientes por tarea. */
+    long countByTaskIdAndStatus(Long taskId, TaskStatus status);
+}

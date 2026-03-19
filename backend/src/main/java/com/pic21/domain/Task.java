@@ -5,6 +5,8 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Entidad que representa una tarea asignada a un estudiante en el contexto de una reunión.
@@ -59,19 +61,32 @@ public class Task {
     private User assignedTo;
 
     /**
-     * Usuario que creó la tarea (PROFESOR o AYUDANTE).
+     * Usuario creador de la tarea (PROFESOR o ADMIN).
+     * EAGER para evitar LazyInitializationException durante el mapeo.
      */
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
     /**
-     * Estado actual de la tarea.
+     * [LEGACY] Asignación directa anterior al modelo de TaskAssignment.
+     * Mantenido para no romper la columna en BD. Las nuevas tareas usan TaskAssignment.
+     */
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "assigned_to", nullable = true)
+    private User legacyAssignedTo;
+
+    /**
+     * [LEGACY] Estado de la asignación anterior al modelo de TaskAssignment.
      */
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "status", nullable = true, length = 20)
+    private TaskStatus legacyStatus;
+
+    /** Asignaciones individuales (nuevo modelo: una por ESTUDIANTE/AYUDANTE ausente). */
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
-    private TaskStatus status = TaskStatus.PENDING;
+    private List<TaskAssignment> assignments = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

@@ -1,6 +1,7 @@
 package com.pic21.controller;
 
 import com.pic21.dto.request.TaskRequest;
+import com.pic21.dto.response.TaskAssignmentResponse;
 import com.pic21.dto.response.TaskResponse;
 import com.pic21.service.TaskService;
 import jakarta.validation.Valid;
@@ -18,58 +19,64 @@ import java.util.Map;
 /**
  * Controlador de Tareas — PIC21
  *
- * POST   /api/tasks/meeting/{id}           → Crear y asignar tareas a ausentes (ADMIN, PROFESOR)
- * GET    /api/tasks/my                     → Mis tareas asignadas (cualquier usuario)
- * GET    /api/tasks                        → Todas las tareas según rol (ADMIN: todas, PROFESOR: propias)
- * GET    /api/tasks/meeting/{id}/pending   → Pendientes por reunión (ADMIN, PROFESOR)
- * PUT    /api/tasks/{id}                   → Editar tarea (ADMIN)
- * DELETE /api/tasks/{id}                   → Eliminar tarea (ADMIN)
- * PATCH  /api/tasks/{id}/status            → Cambiar estado (ADMIN)
+ * POST   /api/tasks/meeting/{id}            → Crear tarea general + asignaciones a ausentes (ADMIN, PROFESOR)
+ * GET    /api/tasks/my                      → Mis asignaciones (ESTUDIANTE, AYUDANTE)
+ * GET    /api/tasks                         → Todas las tareas generales según rol (ADMIN, PROFESOR)
+ * GET    /api/tasks/{id}/assignments        → Asignaciones de una tarea (ADMIN, PROFESOR)
+ * GET    /api/tasks/meeting/{id}/pending    → Tareas con pendientes en una reunión (ADMIN, PROFESOR)
+ * PUT    /api/tasks/{id}                    → Editar tarea general — afecta a todos (ADMIN)
+ * DELETE /api/tasks/{id}                    → Eliminar tarea + todas sus asignaciones (ADMIN)
+ * PATCH  /api/task-assignments/{id}/status  → Cambiar estado de una asignación individual (ADMIN)
  */
 @RestController
-@RequestMapping("/api/tasks")
 @RequiredArgsConstructor
 public class TaskController {
 
     private final TaskService taskService;
 
-    // ── Crear tareas para ausentes ─────────────────────────
-    @PostMapping("/meeting/{meetingId}")
+    // ── Crear tarea para ausentes ──────────────────────────
+    @PostMapping("/api/tasks/meeting/{meetingId}")
     @PreAuthorize("hasAnyRole('PROFESOR','ADMIN')")
-    public ResponseEntity<List<TaskResponse>> createForAbsent(
+    public ResponseEntity<List<TaskAssignmentResponse>> createForAbsent(
             @PathVariable Long meetingId,
             @Valid @RequestBody TaskRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        List<TaskResponse> tasks = taskService.createForAbsent(
-                meetingId, request, userDetails.getUsername());
-        return ResponseEntity.status(HttpStatus.CREATED).body(tasks);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(taskService.createForAbsent(meetingId, request, userDetails.getUsername()));
     }
 
-    // ── Mis tareas (usuario autenticado) ───────────────────
-    @GetMapping("/my")
-    public ResponseEntity<List<TaskResponse>> getMyTasks(
+    // ── Mis asignaciones (ESTUDIANTE / AYUDANTE) ──────────
+    @GetMapping("/api/tasks/my")
+    public ResponseEntity<List<TaskAssignmentResponse>> getMyAssignments(
             @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(taskService.findMyTasks(userDetails.getUsername()));
+        return ResponseEntity.ok(taskService.findMyAssignments(userDetails.getUsername()));
     }
 
-    // ── Todas las tareas según rol ─────────────────────────
-    @GetMapping
+    // ── Todas las tareas generales según rol ──────────────
+    @GetMapping("/api/tasks")
     @PreAuthorize("hasAnyRole('ADMIN','PROFESOR')")
     public ResponseEntity<List<TaskResponse>> getAllByRole(
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(taskService.findAllByRole(userDetails.getUsername()));
     }
 
-    // ── Pendientes por reunión ─────────────────────────────
-    @GetMapping("/meeting/{meetingId}/pending")
+    // ── Asignaciones de una tarea ─────────────────────────
+    @GetMapping("/api/tasks/{id}/assignments")
+    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR')")
+    public ResponseEntity<List<TaskAssignmentResponse>> getAssignments(@PathVariable Long id) {
+        return ResponseEntity.ok(taskService.getAssignments(id));
+    }
+
+    // ── Tareas con pendientes en una reunión ──────────────
+    @GetMapping("/api/tasks/meeting/{meetingId}/pending")
     @PreAuthorize("hasAnyRole('ADMIN','PROFESOR')")
     public ResponseEntity<List<TaskResponse>> getPendingByMeeting(@PathVariable Long meetingId) {
         return ResponseEntity.ok(taskService.findPendingByMeeting(meetingId));
     }
 
-    // ── Editar tarea (ADMIN) ───────────────────────────────
-    @PutMapping("/{id}")
+    // ── Editar tarea general (ADMIN) ──────────────────────
+    @PutMapping("/api/tasks/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<TaskResponse> update(
             @PathVariable Long id,
@@ -77,21 +84,20 @@ public class TaskController {
         return ResponseEntity.ok(taskService.updateTask(id, request));
     }
 
-    // ── Eliminar tarea (ADMIN) ─────────────────────────────
-    @DeleteMapping("/{id}")
+    // ── Eliminar tarea + assignments (ADMIN) ──────────────
+    @DeleteMapping("/api/tasks/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         taskService.deleteTask(id);
         return ResponseEntity.noContent().build();
     }
 
-    // ── Cambiar estado de tarea (ADMIN) ───────────────────
-    @PatchMapping("/{id}/status")
+    // ── Cambiar estado de una asignación (ADMIN) ──────────
+    @PatchMapping("/api/task-assignments/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<TaskResponse> changeStatus(
+    public ResponseEntity<TaskAssignmentResponse> changeStatus(
             @PathVariable Long id,
             @RequestBody Map<String, String> body) {
-        String status = body.get("status");
-        return ResponseEntity.ok(taskService.changeStatus(id, status));
+        return ResponseEntity.ok(taskService.changeAssignmentStatus(id, body.get("status")));
     }
 }
