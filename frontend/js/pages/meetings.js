@@ -155,7 +155,7 @@ const MeetingsPage = (() => {
         </div>
         <div class="form-group">
           <label class="form-label">Link de reunión</label>
-          <input class="form-control" id="mCode" type="url" placeholder="Ej: https://meet.google.com/xxx-xxx" maxlength="500" />
+          <input class="form-control" id="mCode" type="text" placeholder="Ej: https://meet.google.com/xxx-xxx-xxx?pli=1" />
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
@@ -208,7 +208,7 @@ const MeetingsPage = (() => {
         </div>
         <div class="form-group">
           <label class="form-label">Link de reunión</label>
-          <input class="form-control" id="eCode" type="url" value="${escHtml(m.accessCode || '')}" maxlength="500" placeholder="Ej: https://meet.google.com/xxx-xxx" />
+          <input class="form-control" id="eCode" type="text" value="${escHtml(m.accessCode || '')}" placeholder="Ej: https://meet.google.com/xxx-xxx-xxx?pli=1" />
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>

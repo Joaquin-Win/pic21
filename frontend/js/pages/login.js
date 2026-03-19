@@ -15,7 +15,7 @@ const LoginPage = (() => {
     container.innerHTML = `
       <div class="auth-card">
         <div class="auth-logo">
-          <img src="img/logos21.png" alt="PIC UES-SIGLO21" class="auth-logo-img" style="width:72px;height:72px;border-radius:16px;object-fit:contain;" />
+          <img src="/img/logos21.png" alt="PIC UES-SIGLO21" class="auth-logo-img" style="width:72px;height:72px;border-radius:16px;object-fit:contain;" onerror="this.style.display='none'" />
           <h1>PIC UES-SIGLO21</h1>
           <p>Sistema de Gestión de Reuniones y Asistencias</p>
         </div>
@@ -171,6 +171,9 @@ const LoginPage = (() => {
 
         <h4 style="margin-top:1rem;margin-bottom:.5rem;">6. Modificaciones</h4>
         <p>Los administradores del sistema se reservan el derecho de modificar estos términos y condiciones en cualquier momento. Los cambios serán comunicados a los usuarios a través del sistema.</p>
+
+        <h4 style="margin-top:1rem;margin-bottom:.5rem;">7. Descargo de Responsabilidad</h4>
+        <p style="font-weight:500;">Los creadores y administradores del sistema no se hacen responsables por filtraciones de datos, accesos indebidos o uso incorrecto de la información por parte de los usuarios. Cada usuario es responsable de proteger sus credenciales y de utilizar el sistema de manera adecuada conforme a estos términos.</p>
       </div>
       <div class="form-actions" style="margin-top:1rem;">
         <button type="button" class="btn btn-primary" onclick="Modal.close()" style="width:100%;">Entendido</button>

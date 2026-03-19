@@ -40,7 +40,7 @@ public class Meeting {
      * Código de acceso opcional. Puede usarse para validar la entrada
      * de estudiantes a la reunión en fases futuras.
      */
-    @Column(name = "access_code", length = 30)
+    @Column(name = "access_code", length = 1000)
     private String accessCode;
 
     /**
