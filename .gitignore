@@ -1,0 +1,61 @@
+# ==============================
+# PIC21 — .gitignore
+# ==============================
+
+# ── Maven ────────────────────────────────────────
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ── IDE — IntelliJ IDEA ──────────────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.idea_modules/
+
+# ── IDE — Eclipse ────────────────────────────────
+.classpath
+.project
+.settings/
+bin/
+
+# ── IDE — VS Code ────────────────────────────────
+.vscode/
+*.code-workspace
+
+# ── Logs ─────────────────────────────────────────
+*.log
+logs/
+spring_log.txt
+debug_log.txt
+test_results.txt
+qa_results.json
+final_results.txt
+
+# ── Variables de entorno / Secretos ──────────────
+.env
+.env.*
+!.env.example
+application-prod.properties
+
+# ── OS ────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ── Frontend temp ────────────────────────────────
+node_modules/
+dist/
+.cache/
+
+# ── Java generados ────────────────────────────────
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+replay_pid*
