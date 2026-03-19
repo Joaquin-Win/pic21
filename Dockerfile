@@ -1,18 +1,19 @@
-# ── Etapa 1: Compilar con Maven ──────────────────────────────
+# ── Etapa 1: Compilar con Maven (instalado en la imagen) ─────
 FROM eclipse-temurin:17-jdk-alpine AS build
 WORKDIR /app
 
-# Copiar solo el pom.xml primero (caching de dependencias)
+# Instalar Maven
+RUN apk add --no-cache maven
+
+# Copiar pom.xml primero (caching de dependencias)
 COPY backend/pom.xml .
-COPY backend/.mvn .mvn
-COPY backend/mvnw .
 
-# Descargar dependencias (cacheado si no cambia el pom)
-RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
+# Descargar dependencias (se cachea si pom.xml no cambia)
+RUN mvn dependency:go-offline -B
 
-# Copiar el código fuente y compilar
+# Copiar código fuente y compilar
 COPY backend/src ./src
-RUN ./mvnw package -DskipTests -B
+RUN mvn package -DskipTests -B
 
 # ── Etapa 2: Imagen final liviana ─────────────────────────────
 FROM eclipse-temurin:17-jre-alpine
