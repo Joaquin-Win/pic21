@@ -22,7 +22,7 @@ const LoginPage = (() => {
         </div>
         <form class="auth-form" id="loginForm" autocomplete="on">
           <div class="form-group">
-            <label class="form-label" for="loginEmail">Correo electrónico</label>
+            <label class="form-label" for="loginEmail">Correo Siglo / Correo electrónico</label>
             <input class="form-control" id="loginEmail" name="email"
                    type="email" placeholder="Ingresá tu correo electrónico" autocomplete="email" required />
           </div>
@@ -110,9 +110,6 @@ const LoginPage = (() => {
           <div class="form-group">
             <label class="form-label">Contraseña *</label>
             <input class="form-control" id="regPassword" type="password" placeholder="Mínimo 6 caracteres" required minlength="6" />
-            <p style="font-size:.78rem;color:#d97706;margin-top:.35rem;line-height:1.3;">
-              ⚠️ No utilices la misma contraseña que tu cuenta institucional (Universidad Siglo 21).
-            </p>
           </div>
 
           <!-- Checkbox Términos y Condiciones -->
