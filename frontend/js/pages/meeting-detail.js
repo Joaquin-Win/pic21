@@ -43,10 +43,6 @@ const MeetingDetailPage = (() => {
           </div>
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
-          ${isAdminOrProf ? `
-            <input type="file" id="pdfFileInput" accept="application/pdf" multiple style="display:none;" />
-            <button class="btn btn-secondary" id="btnUploadPdf">⬆ Subir PDF(s)</button>
-          ` : ''}
           ${canAttend ? `<button class="btn btn-success" id="btnAttend">✅ Registrar mi asistencia</button>` : ''}
           ${isAdminOrProf ? `<button class="btn btn-secondary" id="btnExcel">📥 Exportar Excel</button>` : ''}
           ${canManage && AuthService.isStaff() ? `<button class="btn btn-primary btn-sm" id="btnCreateTask">➕ Crear tarea</button>` : ''}
@@ -97,16 +93,6 @@ const MeetingDetailPage = (() => {
         </div>
       </div>
 
-      <!-- PDFs adjuntos -->
-      <div class="card" style="margin-bottom:1.5rem;" id="pdfSection">
-        <div class="card-header">
-          <span class="card-title">📄 Archivos PDF</span>
-          <span id="pdfCount" class="text-sm" style="color:var(--text-muted)">Cargando...</span>
-        </div>
-        <div class="card-body" id="pdfListBody">
-          <div class="loading"><div class="spinner"></div></div>
-        </div>
-      </div>
 
       <!-- Attendances table (staff only) -->
       ${canManage ? `
@@ -131,34 +117,6 @@ const MeetingDetailPage = (() => {
       openAttendanceFormModal(meeting, canManage, container);
     });
 
-    // Bind PDF upload (multi-file)
-    document.getElementById('btnUploadPdf')?.addEventListener('click', () => {
-      document.getElementById('pdfFileInput').click();
-    });
-
-    document.getElementById('pdfFileInput')?.addEventListener('change', async (e) => {
-      const files = Array.from(e.target.files);
-      if (!files.length) return;
-      const btn = document.getElementById('btnUploadPdf');
-      btn.disabled = true;
-      btn.textContent = 'Subiendo...';
-      const formData = new FormData();
-      files.forEach(f => formData.append('files', f));
-      try {
-        await Api.post(`/meetings/${meeting.id}/files`, formData);
-        Toast.success(`${files.length} PDF(s) subidos`, files.map(f=>f.name).join(', '));
-        loadPdfs(meeting.id, isAdminOrProf);
-      } catch (err) {
-        Toast.error('Error al subir PDF(s)', err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '⬆ Subir PDF(s)';
-        e.target.value = '';
-      }
-    });
-
-    // Load PDFs section
-    loadPdfs(meeting.id, isAdminOrProf);
 
     // Bind Excel export
     document.getElementById('btnExcel')?.addEventListener('click', async () => {
@@ -291,10 +249,34 @@ const MeetingDetailPage = (() => {
     });
   }
 
-  // ── Attendance form modal (reutiliza misma lógica que meetings.js) ──
+  // ── Attendance form modal ──
   function openAttendanceFormModal(meeting, canManage, container) {
     const user = AuthService.getUser();
-    Modal.open(`Registrar asistencia — ${meeting.title}`, `
+    const CARRERAS_SIGLO21 = [
+      'Abogacía',
+      'Contador Público',
+      'Licenciatura en Administración',
+      'Licenciatura en Comercio Internacional',
+      'Licenciatura en Comunicación',
+      'Licenciatura en Diseño Gráfico',
+      'Licenciatura en Educación',
+      'Licenciatura en Gestión Ambiental',
+      'Licenciatura en Gestión de Recursos Humanos',
+      'Licenciatura en Gestión Turística',
+      'Licenciatura en Informática',
+      'Licenciatura en Marketing',
+      'Licenciatura en Psicología',
+      'Licenciatura en Publicidad',
+      'Licenciatura en Relaciones Internacionales',
+      'Licenciatura en Relaciones Públicas',
+      'Ingeniería en Software',
+      'Ingeniería Industrial',
+      'Tecnicatura en Programación',
+      'Tecnicatura en Desarrollo Web',
+      'Tecnicatura en Marketing Digital',
+    ];
+
+    Modal.open(`Registrar asistencia \u2014 ${meeting.title}`, `
       <form id="attendDetailForm">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
           <div class="form-group">
@@ -310,25 +292,80 @@ const MeetingDetailPage = (() => {
           <label class="form-label">Correo institucional</label>
           <input class="form-control" id="adEmail" value="${escHtml(user?.email || '')}" readonly />
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-          <div class="form-group">
-            <label class="form-label">Legajo *</label>
-            <input class="form-control" id="adLegajo" placeholder="Ej: 12345" required maxlength="20" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Carrera que cursás *</label>
-            <input class="form-control" id="adCarrera" placeholder="Ej: Ing. en Sistemas" required maxlength="150" />
+        <div class="form-group">
+          <label class="form-label">Legajo *</label>
+          <input class="form-control" id="adLegajo" placeholder="Ej: 12345" required maxlength="20" />
+        </div>
+
+        <!-- Tipo de usuario -->
+        <div class="form-group">
+          <label class="form-label">Tipo de usuario *</label>
+          <div style="display:flex;gap:1.5rem;margin-top:.35rem;">
+            <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.95rem;">
+              <input type="radio" name="tipoUsuario" value="Alumno" id="adTipoAlumno" required /> Alumno
+            </label>
+            <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.95rem;">
+              <input type="radio" name="tipoUsuario" value="Egresado" id="adTipoEgresado" /> Egresado
+            </label>
           </div>
         </div>
+
+        <!-- Carrera (solo para alumnos) -->
+        <div class="form-group" id="adCarreraGroup" style="display:none;">
+          <label class="form-label">Carrera *</label>
+          <select class="form-control" id="adCarreraSelect">
+            <option value="">Seleccion\u00e1 tu carrera</option>
+            ${CARRERAS_SIGLO21.map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('')}
+            <option value="__otra__">Otra</option>
+          </select>
+        </div>
+        <div class="form-group" id="adCarreraOtraGroup" style="display:none;">
+          <label class="form-label">Especificar carrera *</label>
+          <input class="form-control" id="adCarreraOtra" placeholder="Escrib\u00ed tu carrera" maxlength="150" />
+        </div>
+
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
-          <button type="submit" class="btn btn-primary" id="adSubmitBtn">✅ Registrar</button>
+          <button type="submit" class="btn btn-primary" id="adSubmitBtn">\u2705 Registrar</button>
         </div>
       </form>`);
+
+    // Toggle carrera visibility based on tipo
+    const tipoRadios = document.querySelectorAll('input[name="tipoUsuario"]');
+    const carreraGroup = document.getElementById('adCarreraGroup');
+    const carreraOtraGroup = document.getElementById('adCarreraOtraGroup');
+    const carreraSelect = document.getElementById('adCarreraSelect');
+    const carreraOtra = document.getElementById('adCarreraOtra');
+
+    tipoRadios.forEach(r => r.addEventListener('change', () => {
+      const isAlumno = document.getElementById('adTipoAlumno').checked;
+      carreraGroup.style.display = isAlumno ? '' : 'none';
+      if (!isAlumno) {
+        carreraOtraGroup.style.display = 'none';
+        carreraSelect.value = '';
+        carreraOtra.value = '';
+      }
+    }));
+
+    carreraSelect.addEventListener('change', () => {
+      carreraOtraGroup.style.display = carreraSelect.value === '__otra__' ? '' : 'none';
+      if (carreraSelect.value !== '__otra__') carreraOtra.value = '';
+    });
 
     document.getElementById('attendDetailForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('adSubmitBtn');
+      const tipoUsuario = document.querySelector('input[name="tipoUsuario"]:checked')?.value;
+      if (!tipoUsuario) { Toast.error('Error', 'Seleccion\u00e1 si sos Alumno o Egresado'); return; }
+
+      let carrera = null;
+      if (tipoUsuario === 'Alumno') {
+        const sel = carreraSelect.value;
+        if (!sel) { Toast.error('Error', 'Seleccion\u00e1 tu carrera'); return; }
+        carrera = sel === '__otra__' ? carreraOtra.value.trim() : sel;
+        if (!carrera) { Toast.error('Error', 'Escrib\u00ed tu carrera'); return; }
+      }
+
       btn.disabled = true;
       btn.textContent = 'Registrando...';
       try {
@@ -337,11 +374,11 @@ const MeetingDetailPage = (() => {
           apellido:            document.getElementById('adApellido').value.trim(),
           correoInstitucional: document.getElementById('adEmail').value.trim(),
           legajo:              document.getElementById('adLegajo').value.trim(),
-          carrera:             document.getElementById('adCarrera').value.trim(),
+          carrera:             carrera,
+          tipoUsuario:         tipoUsuario,
         });
         Modal.close();
-        Toast.success('✅ Asistencia registrada', meeting.title);
-        // Reload attendance list
+        Toast.success('\u2705 Asistencia registrada', meeting.title);
         const [fresh, freshAtt] = await Promise.all([
           Api.get(`/meetings/${meeting.id}`),
           canManage ? Api.get(`/attendances/meeting/${meeting.id}`) : Promise.resolve([]),
@@ -351,7 +388,7 @@ const MeetingDetailPage = (() => {
       } catch (err) {
         Toast.error('No se pudo registrar', err.message);
         btn.disabled = false;
-        btn.textContent = '✅ Registrar';
+        btn.textContent = '\u2705 Registrar';
       }
     });
   }

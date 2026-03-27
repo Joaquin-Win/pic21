@@ -25,6 +25,7 @@ public class AttendanceResponse {
 
     private String legajo;
     private String carrera;
+    private String tipoUsuario;
 
     private LocalDateTime registeredAt;
 }

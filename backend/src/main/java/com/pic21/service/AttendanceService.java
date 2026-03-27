@@ -70,6 +70,7 @@ public class AttendanceService {
                 .user(user)
                 .legajo(request != null ? request.getLegajo() : null)
                 .carrera(request != null ? request.getCarrera() : null)
+                .tipoUsuario(request != null ? request.getTipoUsuario() : null)
                 .build();
 
         Attendance saved = attendanceRepository.save(attendance);
@@ -113,6 +114,7 @@ public class AttendanceService {
                 .email(a.getUser().getEmail())
                 .legajo(a.getLegajo())
                 .carrera(a.getCarrera())
+                .tipoUsuario(a.getTipoUsuario())
                 .registeredAt(a.getRegisteredAt())
                 .build();
     }

@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 /**
  * Datos del formulario de registro de asistencia.
  * El sistema usa el usuario autenticado (JWT) como identidad,
- * pero captura legajo y materia para el registro de asistencia.
+ * pero captura legajo, carrera y tipo de usuario para el registro.
  */
 @Getter
 @NoArgsConstructor
@@ -27,6 +27,10 @@ public class AttendanceRequest {
     @NotBlank(message = "El legajo es requerido")
     private String legajo;
 
-    @NotBlank(message = "La carrera es requerida")
+    /** Carrera — obligatorio solo si tipoUsuario es "Alumno" */
     private String carrera;
+
+    /** Tipo de usuario: "Alumno" o "Egresado" */
+    @NotBlank(message = "El tipo de usuario es requerido")
+    private String tipoUsuario;
 }
