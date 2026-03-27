@@ -22,7 +22,7 @@ const AuthService = (() => {
       localStorage.setItem(USER_KEY, JSON.stringify(user));
       return user;
     }
-    throw new Error('Respuesta inválida del servidor');
+    throw new Error('Correo o contraseña incorrecta');
   }
 
   // ── Logout ───────────────────────────────────────────

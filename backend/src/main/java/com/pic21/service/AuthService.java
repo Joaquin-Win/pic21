@@ -58,6 +58,7 @@ public class AuthService {
         String token = jwtTokenProvider.generateToken(authentication);
 
         User user = userRepository.findByUsername(request.getUsername())
+                .or(() -> userRepository.findByEmail(request.getUsername()))
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario", 0L));
 
         List<String> roles = user.getRoles().stream()

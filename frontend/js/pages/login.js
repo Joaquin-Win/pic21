@@ -3,16 +3,17 @@
 ═══════════════════════════════════════════════════════ */
 
 const LoginPage = (() => {
-  let showingRegister = false;
+  // Variable de módulo para evitar "container is not defined"
+  let _container = null;
 
   function render(container) {
-    showingRegister = false;
-    renderLogin(container);
+    _container = container;
+    renderLogin();
   }
 
   // ── LOGIN ─────────────────────────────────────────────
-  function renderLogin(container) {
-    container.innerHTML = `
+  function renderLogin() {
+    _container.innerHTML = `
       <div class="auth-card">
         <div class="auth-logo">
           <img src="/img/logos21.png" alt="PIC UES-SIGLO21" class="auth-logo-img" style="width:72px;height:72px;border-radius:16px;object-fit:contain;" onerror="this.style.display='none'" />
@@ -21,9 +22,9 @@ const LoginPage = (() => {
         </div>
         <form class="auth-form" id="loginForm" autocomplete="on">
           <div class="form-group">
-            <label class="form-label" for="username">Usuario</label>
-            <input class="form-control" id="username" name="username"
-                   type="text" placeholder="Ingresá tu usuario" autocomplete="username" required />
+            <label class="form-label" for="loginEmail">Correo electrónico</label>
+            <input class="form-control" id="loginEmail" name="email"
+                   type="email" placeholder="Ingresá tu correo electrónico" autocomplete="email" required />
           </div>
           <div class="form-group">
             <label class="form-label" for="password">Contraseña</label>
@@ -49,30 +50,30 @@ const LoginPage = (() => {
       </div>`;
 
     document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
-    document.getElementById('btnShowRegister')?.addEventListener('click', () => renderRegister(container));
-    document.getElementById('username')?.focus();
+    document.getElementById('btnShowRegister')?.addEventListener('click', () => renderRegister());
+    document.getElementById('loginEmail')?.focus();
   }
 
   async function handleLogin(e) {
     e.preventDefault();
-    const username = document.getElementById('username')?.value.trim();
+    const email    = document.getElementById('loginEmail')?.value.trim();
     const password = document.getElementById('password')?.value;
     const btn      = document.getElementById('loginBtn');
     const errEl    = document.getElementById('loginError');
     const errMsg   = document.getElementById('loginErrorMsg');
 
-    if (!username || !password) return;
+    if (!email || !password) return;
 
     btn.disabled = true;
     setHTML('#loginBtnText', '<span class="spinner" style="width:18px;height:18px;border-width:2px;display:inline-block;"></span> Ingresando...');
     errEl.classList.add('hidden');
 
     try {
-      await AuthService.login(username, password);
+      await AuthService.login(email, password);
       Toast.success('¡Bienvenido!', `Hola, ${AuthService.getDisplayName()}`);
       Router.navigate(Router.getDefaultRoute());
     } catch (err) {
-      errMsg.textContent = err.message || 'Credenciales inválidas';
+      errMsg.textContent = 'Correo o contraseña incorrecta';
       errEl.classList.remove('hidden');
       document.getElementById('password').value = '';
       document.getElementById('password').focus();
@@ -83,11 +84,11 @@ const LoginPage = (() => {
   }
 
   // ── REGISTRO PÚBLICO ───────────────────────────────────
-  function renderRegister(container) {
-    container.innerHTML = `
+  function renderRegister() {
+    _container.innerHTML = `
       <div class="auth-card">
         <div class="auth-logo">
-          <img src="img/logos21.png" alt="PIC UES-SIGLO21" class="auth-logo-img" style="width:72px;height:72px;border-radius:16px;object-fit:contain;" />
+          <img src="/img/logos21.png" alt="PIC UES-SIGLO21" class="auth-logo-img" style="width:72px;height:72px;border-radius:16px;object-fit:contain;" onerror="this.style.display='none'" />
           <h1>PIC UES-SIGLO21</h1>
           <p>Registrar nueva cuenta</p>
         </div>
@@ -103,11 +104,7 @@ const LoginPage = (() => {
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Usuario *</label>
-            <input class="form-control" id="regUsername" placeholder="Nombre de usuario (mín. 3 caracteres)" required minlength="3" maxlength="50" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Email institucional *</label>
+            <label class="form-label">Correo electrónico *</label>
             <input class="form-control" id="regEmail" type="email" placeholder="correo@universidad.edu" required />
           </div>
           <div class="form-group">
@@ -145,7 +142,7 @@ const LoginPage = (() => {
       </div>`;
 
     document.getElementById('registerForm')?.addEventListener('submit', handleRegister);
-    document.getElementById('btnBackLogin')?.addEventListener('click', () => renderLogin(container));
+    document.getElementById('btnBackLogin')?.addEventListener('click', () => renderLogin());
     document.getElementById('openTerms')?.addEventListener('click', (e) => { e.preventDefault(); openTermsModal(); });
     document.getElementById('regFirstName')?.focus();
   }
@@ -198,11 +195,13 @@ const LoginPage = (() => {
     setHTML('#registerBtnText', '<span class="spinner" style="width:18px;height:18px;border-width:2px;display:inline-block;"></span> Registrando...');
     errEl.classList.add('hidden');
 
+    const email = document.getElementById('regEmail').value.trim();
+
     const body = {
       firstName: document.getElementById('regFirstName').value.trim(),
       lastName:  document.getElementById('regLastName').value.trim(),
-      username:  document.getElementById('regUsername').value.trim(),
-      email:     document.getElementById('regEmail').value.trim(),
+      username:  email,  // auto-generar username desde el email
+      email:     email,
       password:  document.getElementById('regPassword').value,
     };
 
@@ -216,8 +215,8 @@ const LoginPage = (() => {
       if (!resp.ok) {
         throw new Error(data.message || data.error || 'Error al registrar');
       }
-      Toast.success('✅ Cuenta creada', `Usuario "${data.username}" registrado. Ya podés iniciar sesión.`);
-      renderLogin(container);
+      Toast.success('✅ Cuenta creada', 'Usuario registrado exitosamente. Ya podés iniciar sesión.');
+      renderLogin();  // usa _container (variable de módulo), NO "container"
     } catch (err) {
       errMsg.textContent = err.message;
       errEl.classList.remove('hidden');
