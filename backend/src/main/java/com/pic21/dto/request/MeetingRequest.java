@@ -29,4 +29,13 @@ public class MeetingRequest {
      * Link de reunión opcional (Google Meet, Zoom, Teams, etc.)
      */
     private String accessCode;
+
+    /** Link de grabación de la reunión (opcional) */
+    private String recordingLink;
+
+    /** Link de noticias (opcional) */
+    private String newsLink;
+
+    /** Link de actividad de la reunión (opcional) */
+    private String activityLink;
 }

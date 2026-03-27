@@ -57,10 +57,42 @@ const MeetingDetailPage = (() => {
       <div class="card" style="margin-bottom:1.5rem;">
         <div class="card-body">
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
-            <div><div class="text-xs" style="color:var(--text-muted);margin-bottom:.25rem;">CÓDIGO DE ACCESO</div><strong>${escHtml(meeting.accessCode || '—')}</strong></div>
+            <div><div class="text-xs" style="color:var(--text-muted);margin-bottom:.25rem;">LINK DE REUNIÓN</div>${meeting.accessCode ? `<a href="${escHtml(meeting.accessCode)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;">${escHtml(meeting.accessCode)}</a>` : '<span>—</span>'}</div>
             <div><div class="text-xs" style="color:var(--text-muted);margin-bottom:.25rem;">CREADO POR</div><strong>${escHtml(meeting.createdBy || '—')}</strong></div>
             <div><div class="text-xs" style="color:var(--text-muted);margin-bottom:.25rem;">DESCRIPCIÓN</div>${escHtml(meeting.description || 'Sin descripción')}</div>
             ${canManage ? `<div><div class="text-xs" style="color:var(--text-muted);margin-bottom:.25rem;">ASISTENTES</div><strong>${arr.length}</strong></div>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <!-- Links de la reunión -->
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-header">
+          <span class="card-title">🔗 Links de la reunión</span>
+        </div>
+        <div class="card-body">
+          <div style="display:grid;gap:1rem;">
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.75rem;background:var(--bg-secondary);border-radius:8px;">
+              <span style="font-size:1.3rem;">🎥</span>
+              <div style="flex:1;">
+                <div style="font-weight:600;margin-bottom:.15rem;">Grabación de la reunión</div>
+                ${meeting.recordingLink ? `<a href="${escHtml(meeting.recordingLink)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;word-break:break-all;font-size:.9rem;">${escHtml(meeting.recordingLink)}</a>` : '<span style="color:var(--text-muted);font-size:.9rem;">Sin link aún</span>'}
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.75rem;background:var(--bg-secondary);border-radius:8px;">
+              <span style="font-size:1.3rem;">📰</span>
+              <div style="flex:1;">
+                <div style="font-weight:600;margin-bottom:.15rem;">Noticias</div>
+                ${meeting.newsLink ? `<a href="${escHtml(meeting.newsLink)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;word-break:break-all;font-size:.9rem;">${escHtml(meeting.newsLink)}</a>` : '<span style="color:var(--text-muted);font-size:.9rem;">Sin link aún</span>'}
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.75rem;background:var(--bg-secondary);border-radius:8px;">
+              <span style="font-size:1.3rem;">📝</span>
+              <div style="flex:1;">
+                <div style="font-weight:600;margin-bottom:.15rem;">Link de actividad de la reunión</div>
+                ${meeting.activityLink ? `<a href="${escHtml(meeting.activityLink)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;word-break:break-all;font-size:.9rem;">${escHtml(meeting.activityLink)}</a>` : '<span style="color:var(--text-muted);font-size:.9rem;">Sin link aún</span>'}
+              </div>
+            </div>
           </div>
         </div>
       </div>

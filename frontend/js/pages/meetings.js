@@ -155,7 +155,19 @@ const MeetingsPage = (() => {
         </div>
         <div class="form-group">
           <label class="form-label">Link de reunión</label>
-          <input class="form-control" id="mCode" type="text" placeholder="Ej: https://meet.google.com/xxx-xxx-xxx?pli=1" />
+          <input class="form-control" id="mCode" type="text" placeholder="Ej: https://meet.google.com/xxx-xxx-xxx" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">🎥 Link de grabación</label>
+          <input class="form-control" id="mRecording" type="text" placeholder="Link de la grabación (opcional)" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">📰 Link de noticias</label>
+          <input class="form-control" id="mNews" type="text" placeholder="Link de noticias (opcional)" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">📝 Link de actividad</label>
+          <input class="form-control" id="mActivity" type="text" placeholder="Link de actividad (opcional)" />
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
@@ -173,10 +185,13 @@ const MeetingsPage = (() => {
       btn.disabled = true; btn.textContent = 'Creando...';
       try {
         await Api.post('/meetings', {
-          title:       document.getElementById('mTitle').value.trim(),
-          description: document.getElementById('mDesc').value.trim() || null,
-          scheduledAt: document.getElementById('mDate').value,
-          accessCode:  document.getElementById('mCode').value.trim() || null,
+          title:         document.getElementById('mTitle').value.trim(),
+          description:   document.getElementById('mDesc').value.trim() || null,
+          scheduledAt:   document.getElementById('mDate').value,
+          accessCode:    document.getElementById('mCode').value.trim() || null,
+          recordingLink: document.getElementById('mRecording').value.trim() || null,
+          newsLink:      document.getElementById('mNews').value.trim() || null,
+          activityLink:  document.getElementById('mActivity').value.trim() || null,
         });
         Modal.close();
         Toast.success('Reunión creada', '');
@@ -208,7 +223,19 @@ const MeetingsPage = (() => {
         </div>
         <div class="form-group">
           <label class="form-label">Link de reunión</label>
-          <input class="form-control" id="eCode" type="text" value="${escHtml(m.accessCode || '')}" placeholder="Ej: https://meet.google.com/xxx-xxx-xxx?pli=1" />
+          <input class="form-control" id="eCode" type="text" value="${escHtml(m.accessCode || '')}" placeholder="Ej: https://meet.google.com/xxx-xxx-xxx" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">🎥 Link de grabación</label>
+          <input class="form-control" id="eRecording" type="text" value="${escHtml(m.recordingLink || '')}" placeholder="Link de la grabación (opcional)" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">📰 Link de noticias</label>
+          <input class="form-control" id="eNews" type="text" value="${escHtml(m.newsLink || '')}" placeholder="Link de noticias (opcional)" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">📝 Link de actividad</label>
+          <input class="form-control" id="eActivity" type="text" value="${escHtml(m.activityLink || '')}" placeholder="Link de actividad (opcional)" />
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
@@ -222,10 +249,13 @@ const MeetingsPage = (() => {
       btn.disabled = true; btn.textContent = 'Guardando...';
       try {
         await Api.put(`/meetings/${m.id}`, {
-          title:       document.getElementById('eTitle').value.trim(),
-          description: document.getElementById('eDesc').value.trim() || null,
-          scheduledAt: document.getElementById('eDate').value,
-          accessCode:  document.getElementById('eCode').value.trim() || null,
+          title:         document.getElementById('eTitle').value.trim(),
+          description:   document.getElementById('eDesc').value.trim() || null,
+          scheduledAt:   document.getElementById('eDate').value,
+          accessCode:    document.getElementById('eCode').value.trim() || null,
+          recordingLink: document.getElementById('eRecording').value.trim() || null,
+          newsLink:      document.getElementById('eNews').value.trim() || null,
+          activityLink:  document.getElementById('eActivity').value.trim() || null,
         });
         Modal.close();
         Toast.success('Reunión actualizada', '');

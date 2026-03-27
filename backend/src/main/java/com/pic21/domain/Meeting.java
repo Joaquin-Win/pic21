@@ -43,6 +43,18 @@ public class Meeting {
     @Column(name = "access_code", length = 1000)
     private String accessCode;
 
+    /** Link de grabación de la reunión */
+    @Column(name = "recording_link", length = 1000)
+    private String recordingLink;
+
+    /** Link de noticias */
+    @Column(name = "news_link", length = 1000)
+    private String newsLink;
+
+    /** Link de actividad de la reunión */
+    @Column(name = "activity_link", length = 1000)
+    private String activityLink;
+
     /**
      * Data del archivo PDF adjunto a la reunión (opcional).
      * EAGER porque si fuera LAZY, Hibernate 6 lanzaría LazyInitializationException

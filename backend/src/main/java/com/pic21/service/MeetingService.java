@@ -53,6 +53,9 @@ public class MeetingService {
                 .scheduledAt(request.getScheduledAt())
                 .status(MeetingStatus.NO_INICIADA)
                 .accessCode(request.getAccessCode())
+                .recordingLink(request.getRecordingLink())
+                .newsLink(request.getNewsLink())
+                .activityLink(request.getActivityLink())
                 .createdBy(creator)
                 .build();
 
@@ -76,6 +79,9 @@ public class MeetingService {
         meeting.setDescription(request.getDescription());
         meeting.setScheduledAt(request.getScheduledAt());
         meeting.setAccessCode(request.getAccessCode());
+        meeting.setRecordingLink(request.getRecordingLink());
+        meeting.setNewsLink(request.getNewsLink());
+        meeting.setActivityLink(request.getActivityLink());
 
         log.info("Reunión actualizada: id={}", id);
         return mapToResponse(meetingRepository.save(meeting));
@@ -239,6 +245,9 @@ public class MeetingService {
                 .scheduledAt(m.getScheduledAt())
                 .status(m.getStatus())
                 .accessCode(accessCode)
+                .recordingLink(m.getRecordingLink())
+                .newsLink(m.getNewsLink())
+                .activityLink(m.getActivityLink())
                 .pdfFileName(m.getPdfFileName())
                 .hasPdfFile(m.getPdfFileName() != null && !m.getPdfFileName().isBlank())
                 .createdBy(m.getCreatedBy().getUsername())

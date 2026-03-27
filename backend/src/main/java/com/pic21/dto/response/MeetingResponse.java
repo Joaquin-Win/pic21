@@ -25,6 +25,10 @@ public class MeetingResponse {
      */
     private String accessCode;
 
+    private String recordingLink;
+    private String newsLink;
+    private String activityLink;
+
     private String pdfFileName;
     private boolean hasPdfFile;
 

@@ -22,7 +22,7 @@ const LoginPage = (() => {
         </div>
         <form class="auth-form" id="loginForm" autocomplete="on">
           <div class="form-group">
-            <label class="form-label" for="loginEmail">Correo Siglo / Correo electrónico</label>
+            <label class="form-label" for="loginEmail">Correo SoySiglo / Correo electrónico</label>
             <input class="form-control" id="loginEmail" name="email"
                    type="email" placeholder="Ingresá tu correo electrónico" autocomplete="email" required />
           </div>
@@ -104,7 +104,7 @@ const LoginPage = (() => {
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Correo electrónico *</label>
+            <label class="form-label">Correo SoySiglo / Correo electrónico *</label>
             <input class="form-control" id="regEmail" type="email" placeholder="correo@universidad.edu" required />
           </div>
           <div class="form-group">
