@@ -157,3 +157,18 @@
   font-size: .78rem;
   color: #6f7073;
 }
+
+/* ── Responsive Auth ──────────────────────────────────────── */
+@media (max-width: 480px) {
+  .auth-screen { padding: 1rem; }
+  .auth-card {
+    padding: 1.75rem 1.25rem;
+    border-radius: 16px;
+    max-width: 100%;
+  }
+  .auth-logo-icon { width: 52px; height: 52px; font-size: 1.5rem; }
+  .auth-logo h1 { font-size: 1.25rem; }
+  .auth-form .form-control { padding: .85rem 1rem; font-size: 1rem; }
+  .auth-submit { padding: 1rem; font-size: 1rem; }
+}
+

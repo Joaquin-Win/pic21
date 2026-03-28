@@ -54,7 +54,13 @@ const Api = (() => {
       return data;
     } catch (err) {
       if (err instanceof ApiError) throw err;
-      throw new ApiError('Error de conexión con el servidor', 0);
+      console.error('[Api] Network error:', err);
+      throw new ApiError(
+        err.message && err.message !== 'Failed to fetch'
+          ? err.message
+          : 'No se pudo conectar con el servidor. Verificá tu conexión a internet.',
+        0
+      );
     }
   }
 
