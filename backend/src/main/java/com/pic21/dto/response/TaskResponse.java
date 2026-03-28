@@ -23,6 +23,7 @@ public class TaskResponse {
     private String title;
     private String description;
     private String link;
+    private String questionsJson;
 
     private Long createdById;
     private String createdByUsername;

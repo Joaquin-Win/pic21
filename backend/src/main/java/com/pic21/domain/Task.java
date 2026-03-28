@@ -38,6 +38,10 @@ public class Task {
     @Column(length = 500)
     private String link;
 
+    /** JSON array con las preguntas del quiz multiple choice */
+    @Column(name = "questions_json", columnDefinition = "TEXT")
+    private String questionsJson;
+
     /**
      * Usuario creador de la tarea (PROFESOR o ADMIN).
      * EAGER para evitar LazyInitializationException al mappear.

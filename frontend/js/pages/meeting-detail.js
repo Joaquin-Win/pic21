@@ -204,47 +204,100 @@ const MeetingDetailPage = (() => {
   }
 
   function openCreateTaskModal(meetingId, meetingTitle) {
-    Modal.open(`Crear tarea — ${meetingTitle}`, `
-      <p class="text-sm" style="color:var(--text-muted);margin-bottom:1rem;">
-        La tarea se asignará automáticamente a los estudiantes que <strong>no asistieron</strong> a esta reunión.
-      </p>
-      <form id="taskForm">
-        <div class="form-group">
-          <label class="form-label">Título *</label>
-          <input class="form-control" id="tTitle" placeholder="Ej: Resumen de clase" required maxlength="200" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Descripción *</label>
-          <textarea class="form-control" id="tDesc" placeholder="Descripción detallada de la tarea" rows="3" required></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Link (URL)</label>
-          <input class="form-control" id="tLink" type="url" placeholder="https://drive.google.com/..." />
-        </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
-          <button type="submit" class="btn btn-primary" id="saveTaskBtn">Crear tarea</button>
-        </div>
-      </form>`);
+    let mdQuestions = [];
+    for (let i = 0; i < 5; i++) mdQuestions.push({ question: '', options: ['', '', ''], correct: 0 });
 
-    document.getElementById('taskForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
+    function renderMdQuiz() {
+      const c = document.getElementById('mdQuizBuilder');
+      if (!c) return;
+      c.innerHTML = mdQuestions.map((q, qi) => `
+        <div style="border:1px solid var(--border-color);border-radius:8px;padding:.75rem;margin-bottom:.5rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem;">
+            <strong style="font-size:.9rem;">Pregunta ${qi + 1}</strong>
+            ${mdQuestions.length > 5 ? `<button type="button" class="btn btn-secondary btn-sm mdq-remove" data-qi="${qi}" style="color:#ef4444;font-size:.7rem;">🗑</button>` : ''}
+          </div>
+          <input class="form-control mdq-text" data-qi="${qi}" value="${escHtml(q.question)}" placeholder="Enunciado" style="margin-bottom:.4rem;" />
+          <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.25rem;">Opciones (mín 3) — marcá la correcta:</div>
+          ${q.options.map((o, oi) => `
+            <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.25rem;">
+              <input type="radio" name="mdc_${qi}" value="${oi}" ${q.correct===oi?'checked':''} class="mdq-correct" data-qi="${qi}" data-oi="${oi}" style="width:16px;height:16px;" />
+              <input class="form-control mdq-opt" data-qi="${qi}" data-oi="${oi}" value="${escHtml(o)}" placeholder="Opción ${oi+1}" style="flex:1;font-size:.9rem;" />
+              ${q.options.length>3 ? `<button type="button" class="btn btn-secondary btn-sm mdq-rmopt" data-qi="${qi}" data-oi="${oi}" style="color:#ef4444;padding:0 .3rem;font-size:.7rem;">✕</button>` : ''}
+            </div>
+          `).join('')}
+          <button type="button" class="btn btn-secondary btn-sm mdq-addopt" data-qi="${qi}" style="font-size:.7rem;margin-top:.15rem;">+ Opción</button>
+        </div>
+      `).join('');
+
+      c.querySelectorAll('.mdq-text').forEach(e => e.addEventListener('input', () => { mdQuestions[+e.dataset.qi].question = e.value; }));
+      c.querySelectorAll('.mdq-opt').forEach(e => e.addEventListener('input', () => { mdQuestions[+e.dataset.qi].options[+e.dataset.oi] = e.value; }));
+      c.querySelectorAll('.mdq-correct').forEach(e => e.addEventListener('change', () => { mdQuestions[+e.dataset.qi].correct = +e.dataset.oi; }));
+      c.querySelectorAll('.mdq-remove').forEach(e => e.addEventListener('click', () => { mdQuestions.splice(+e.dataset.qi, 1); renderMdQuiz(); }));
+      c.querySelectorAll('.mdq-rmopt').forEach(e => e.addEventListener('click', () => {
+        const qi=+e.dataset.qi, oi=+e.dataset.oi;
+        mdQuestions[qi].options.splice(oi, 1);
+        if (mdQuestions[qi].correct >= mdQuestions[qi].options.length) mdQuestions[qi].correct = 0;
+        renderMdQuiz();
+      }));
+      c.querySelectorAll('.mdq-addopt').forEach(e => e.addEventListener('click', () => { mdQuestions[+e.dataset.qi].options.push(''); renderMdQuiz(); }));
+    }
+
+    Modal.open(`Crear Quiz — ${meetingTitle}`, `
+      <p class="text-sm" style="color:var(--text-muted);margin-bottom:.75rem;">
+        Se asignará automáticamente a los estudiantes que <strong>no asistieron</strong>.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Título *</label>
+        <input class="form-control" id="tTitle" placeholder="Ej: Quiz de la clase" required maxlength="200" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción (opcional)</label>
+        <textarea class="form-control" id="tDesc" placeholder="Instrucciones..." rows="2"></textarea>
+      </div>
+      <div style="margin:.75rem 0 .35rem;"><strong style="font-size:.95rem;">📝 Preguntas (5-20)</strong></div>
+      <div id="mdQuizBuilder" style="max-height:40vh;overflow-y:auto;"></div>
+      <button type="button" class="btn btn-secondary btn-sm" id="mdAddQ" style="margin-top:.5rem;">➕ Agregar pregunta</button>
+      <div class="form-actions" style="margin-top:.75rem;">
+        <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="saveTaskBtn">✅ Crear quiz</button>
+      </div>
+    `);
+
+    renderMdQuiz();
+
+    document.getElementById('mdAddQ').addEventListener('click', () => {
+      if (mdQuestions.length >= 20) { Toast.warning('Máximo 20 preguntas',''); return; }
+      mdQuestions.push({ question: '', options: ['', '', ''], correct: 0 });
+      renderMdQuiz();
+    });
+
+    document.getElementById('saveTaskBtn').addEventListener('click', async () => {
       const btn = document.getElementById('saveTaskBtn');
-      btn.disabled = true;
-      btn.textContent = 'Creando...';
+      const title = document.getElementById('tTitle').value.trim();
+      const desc = document.getElementById('tDesc').value.trim();
+      if (!title) { Toast.warning('El título es obligatorio',''); return; }
+      // Validate quiz
+      if (mdQuestions.length < 5) { Toast.warning('Mínimo 5 preguntas', `Tenés ${mdQuestions.length}`); return; }
+      for (let i = 0; i < mdQuestions.length; i++) {
+        const q = mdQuestions[i];
+        if (!q.question.trim()) { Toast.warning(`Pregunta ${i+1}`, 'Falta el enunciado'); return; }
+        if (q.options.length < 3) { Toast.warning(`Pregunta ${i+1}`, 'Mínimo 3 opciones'); return; }
+        for (let j = 0; j < q.options.length; j++) {
+          if (!q.options[j].trim()) { Toast.warning(`Pregunta ${i+1}`, `Opción ${j+1} vacía`); return; }
+        }
+      }
+      btn.disabled = true; btn.textContent = 'Creando...';
       try {
         const result = await Api.post(`/tasks/meeting/${meetingId}`, {
-          title:       document.getElementById('tTitle').value.trim(),
-          description: document.getElementById('tDesc').value.trim(),
-          link:        document.getElementById('tLink').value.trim() || null,
+          title, description: desc || null, link: null,
+          questionsJson: JSON.stringify(mdQuestions),
         });
         Modal.close();
         const count = Array.isArray(result) ? result.length : 1;
-        Toast.success('Tarea creada', `Asignada a ${count} estudiante(s) ausente(s)`);
+        Toast.success('Quiz creado', `Asignado a ${count} estudiante(s) ausente(s)`);
       } catch (err) {
         Toast.error('Error', err.message);
-        btn.disabled = false;
-        btn.textContent = 'Crear tarea';
+        btn.disabled = false; btn.textContent = '✅ Crear quiz';
       }
     });
   }

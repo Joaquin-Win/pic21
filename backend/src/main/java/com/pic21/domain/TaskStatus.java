@@ -10,5 +10,6 @@ package com.pic21.domain;
 public enum TaskStatus {
     PENDING,
     COMPLETED,
-    CORRECTED
+    CORRECTED,
+    APPROVED
 }

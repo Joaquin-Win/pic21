@@ -27,4 +27,10 @@ public class TaskRequest {
      */
     @Size(max = 500, message = "El link no puede superar los 500 caracteres")
     private String link;
+
+    /**
+     * JSON con las preguntas del quiz multiple choice.
+     * Formato: [{"question":"...","options":["a","b","c"],"correct":0}, ...]
+     */
+    private String questionsJson;
 }

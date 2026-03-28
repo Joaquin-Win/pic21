@@ -70,6 +70,7 @@ function statusBadge(status) {
     PENDING:     { cls: 'badge-pending',  label: 'Pendiente'   },
     COMPLETED:   { cls: 'badge-done',     label: 'Completada'  },
     CORRECTED:   { cls: 'badge-active',   label: 'Corregida'   },
+    APPROVED:    { cls: 'badge-done',     label: 'Aprobado ✅' },
     // Legacy (backward compat)
     IN_PROGRESS: { cls: 'badge-pending',  label: 'En progreso' },
     DONE:        { cls: 'badge-done',     label: 'Completada'  },

@@ -100,4 +100,17 @@ public class TaskController {
             @RequestBody Map<String, String> body) {
         return ResponseEntity.ok(taskService.changeAssignmentStatus(id, body.get("status")));
     }
+
+    // ── Submit quiz (ESTUDIANTE / AYUDANTE) ──────────────
+    @PostMapping("/api/task-assignments/{id}/submit")
+    public ResponseEntity<TaskAssignmentResponse> submitQuiz(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        @SuppressWarnings("unchecked")
+        List<Integer> answers = ((List<?>) body.get("answers")).stream()
+                .map(a -> a instanceof Number ? ((Number) a).intValue() : Integer.parseInt(a.toString()))
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(taskService.submitQuiz(id, answers, userDetails.getUsername()));
+    }
 }

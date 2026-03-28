@@ -40,6 +40,15 @@ public class TaskAssignment {
     @Builder.Default
     private TaskStatus status = TaskStatus.PENDING;
 
+    /** Porcentaje obtenido en el último intento del quiz (null si no rindió aún) */
+    @Column(name = "score")
+    private Integer score;
+
+    /** Cantidad de intentos realizados */
+    @Column(name = "attempts", nullable = false)
+    @Builder.Default
+    private int attempts = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

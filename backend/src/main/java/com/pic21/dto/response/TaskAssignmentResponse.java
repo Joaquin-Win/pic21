@@ -22,5 +22,9 @@ public class TaskAssignmentResponse {
     private String lastName;
 
     private TaskStatus status;
+    private Integer score;
+    private int attempts;
+    private String questionsJson;
+    private String taskDescription;
     private LocalDateTime createdAt;
 }

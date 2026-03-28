@@ -89,6 +89,7 @@ public class TaskService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .link(request.getLink())
+                .questionsJson(request.getQuestionsJson())
                 .createdBy(creator)
                 .build();
         task = taskRepository.save(task);
@@ -166,6 +167,7 @@ public class TaskService {
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         task.setLink(request.getLink());
+        task.setQuestionsJson(request.getQuestionsJson());
         log.info("Tarea id={} actualizada (impacta a todos los asignados)", id);
         return mapTask(taskRepository.save(task), false);
     }
@@ -195,6 +197,71 @@ public class TaskService {
         return mapAssignment(assignmentRepository.save(assignment));
     }
 
+    // ── Submit quiz (ESTUDIANTE / AYUDANTE) ─────────────────
+    @Transactional
+    public TaskAssignmentResponse submitQuiz(Long assignmentId, List<Integer> answers, String username) {
+        TaskAssignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Asignación", assignmentId));
+
+        // Verify the assignment belongs to this user
+        User user = userRepository.findByUsername(username)
+                .or(() -> userRepository.findByEmail(username))
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + username));
+        if (!assignment.getAssignedTo().getId().equals(user.getId())) {
+            throw new BusinessException("Esta asignación no te pertenece.");
+        }
+
+        // Already approved — no need to retry
+        if (assignment.getStatus() == TaskStatus.APPROVED) {
+            throw new BusinessException("Ya aprobaste este quiz. No es necesario rendirlo nuevamente.");
+        }
+
+        // Parse questions
+        String questionsJson = assignment.getTask().getQuestionsJson();
+        if (questionsJson == null || questionsJson.isBlank()) {
+            throw new BusinessException("Esta tarea no tiene un quiz configurado.");
+        }
+
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        List<?> questions;
+        try {
+            questions = mapper.readValue(questionsJson, List.class);
+        } catch (Exception e) {
+            throw new BusinessException("Error al leer las preguntas del quiz.");
+        }
+
+        if (answers == null || answers.size() != questions.size()) {
+            throw new BusinessException("Debés responder todas las preguntas (" + questions.size() + ").");
+        }
+
+        // Calculate score
+        int correct = 0;
+        for (int i = 0; i < questions.size(); i++) {
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> q = (java.util.Map<String, Object>) questions.get(i);
+            Object correctIdx = q.get("correct");
+            int expected = correctIdx instanceof Number ? ((Number) correctIdx).intValue() : -1;
+            if (answers.get(i) != null && answers.get(i) == expected) {
+                correct++;
+            }
+        }
+
+        int scorePercent = (int) Math.round((correct * 100.0) / questions.size());
+        assignment.setScore(scorePercent);
+        assignment.setAttempts(assignment.getAttempts() + 1);
+
+        if (scorePercent >= 70) {
+            assignment.setStatus(TaskStatus.APPROVED);
+            log.info("Quiz APROBADO: assignment={}, user='{}', score={}%, intento #{}",
+                    assignmentId, username, scorePercent, assignment.getAttempts());
+        } else {
+            log.info("Quiz NO aprobado: assignment={}, user='{}', score={}%, intento #{}",
+                    assignmentId, username, scorePercent, assignment.getAttempts());
+        }
+
+        return mapAssignment(assignmentRepository.save(assignment));
+    }
+
     // ── Helpers ────────────────────────────────────────────
     private TaskResponse mapTask(Task t, boolean includeAssignments) {
         long total   = assignmentRepository.countByTaskId(t.getId());
@@ -206,6 +273,7 @@ public class TaskService {
                 .title(t.getTitle())
                 .description(t.getDescription())
                 .link(t.getLink())
+                .questionsJson(t.getQuestionsJson())
                 .createdById(t.getCreatedBy().getId())
                 .createdByUsername(t.getCreatedBy().getUsername())
                 .createdAt(t.getCreatedAt())
@@ -215,15 +283,35 @@ public class TaskService {
     }
 
     private TaskAssignmentResponse mapAssignment(TaskAssignment a) {
+        // Strip correct answers when returning to student (so they can't cheat)
+        String safeQuestions = null;
+        String raw = a.getTask().getQuestionsJson();
+        if (raw != null && !raw.isBlank()) {
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                @SuppressWarnings("unchecked")
+                List<java.util.Map<String, Object>> qs = mapper.readValue(raw,
+                        mapper.getTypeFactory().constructCollectionType(List.class, java.util.Map.class));
+                qs.forEach(q -> q.remove("correct"));
+                safeQuestions = mapper.writeValueAsString(qs);
+            } catch (Exception e) {
+                safeQuestions = raw; // fallback
+            }
+        }
+
         return TaskAssignmentResponse.builder()
                 .id(a.getId())
                 .taskId(a.getTask().getId())
                 .taskTitle(a.getTask().getTitle())
+                .taskDescription(a.getTask().getDescription())
                 .userId(a.getAssignedTo().getId())
                 .username(a.getAssignedTo().getUsername())
                 .firstName(a.getAssignedTo().getFirstName())
                 .lastName(a.getAssignedTo().getLastName())
                 .status(a.getStatus())
+                .score(a.getScore())
+                .attempts(a.getAttempts())
+                .questionsJson(safeQuestions)
                 .createdAt(a.getCreatedAt())
                 .build();
     }
