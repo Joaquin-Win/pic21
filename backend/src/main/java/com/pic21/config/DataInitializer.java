@@ -113,8 +113,19 @@ public class DataInitializer implements ApplicationRunner {
             safeExecute("ALTER TABLE task_assignments ALTER COLUMN attempts DROP NOT NULL");
             safeExecute("UPDATE task_assignments SET attempts = 0 WHERE attempts IS NULL");
 
+            // Ensure status column accepts APPROVED (expand to VARCHAR(20) if needed)
+            safeExecute("ALTER TABLE task_assignments ALTER COLUMN status TYPE VARCHAR(20)");
+
+            // Drop any CHECK constraint on status that might block APPROVED
+            // PostgreSQL auto-generates constraint names like: task_assignments_status_check
+            safeExecute("ALTER TABLE task_assignments DROP CONSTRAINT IF EXISTS task_assignments_status_check");
+
             // tasks: questions_json (TEXT)
             safeExecute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS questions_json TEXT");
+
+            // tasks: ensure legacy status column also accepts APPROVED
+            safeExecute("ALTER TABLE tasks ALTER COLUMN status TYPE VARCHAR(20)");
+            safeExecute("ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_status_check");
 
             log.info("Migración de columnas de quiz completada.");
         } catch (Exception ex) {

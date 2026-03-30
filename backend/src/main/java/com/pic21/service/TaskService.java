@@ -258,10 +258,11 @@ public class TaskService {
                 newStatus == TaskStatus.APPROVED ? "APROBADO" : "NO aprobado",
                 assignmentId, username, scorePercent, currentAttempts + 1);
 
-        // Reload and return
-        TaskAssignment updated = assignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Asignación", assignmentId));
-        return mapAssignment(updated);
+        // Update in-memory object (already has task & user loaded) — avoid reloading from DB
+        assignment.setScore(scorePercent);
+        assignment.setAttempts(currentAttempts + 1);
+        assignment.setStatus(newStatus);
+        return mapAssignment(assignment);
     }
 
     // ── Helpers ────────────────────────────────────────────
