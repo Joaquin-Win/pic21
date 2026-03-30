@@ -45,7 +45,7 @@ public class TaskAssignment {
     private Integer score;
 
     /** Cantidad de intentos realizados */
-    @Column(name = "attempts", nullable = false)
+    @Column(name = "attempts")
     @Builder.Default
     private int attempts = 0;
 

@@ -12,6 +12,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -20,6 +23,7 @@ import java.util.Set;
  * Inicializa datos necesarios al arrancar la aplicación:
  * - Crea los 4 roles si no existen
  * - Crea o actualiza el usuario administrador
+ * - Migra columnas de DB si faltan (quiz: score, attempts, questions_json)
  */
 @Slf4j
 @Component
@@ -30,6 +34,9 @@ public class DataInitializer implements ApplicationRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     /** Contraseña del admin — se aplica al crear o si no coincide. */
     private static final String ADMIN_PASSWORD = "msjj2023";
 
@@ -38,6 +45,7 @@ public class DataInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         initRoles();
         initAdmin();
+        migrateQuizColumns();
     }
 
     private void initRoles() {
@@ -90,4 +98,37 @@ public class DataInitializer implements ApplicationRunner {
         userRepository.save(admin);
         log.info("Usuario admin creado.");
     }
+
+    /**
+     * Asegura que las columnas de quiz existan en la DB de producción.
+     * Hibernate ddl-auto=update a veces no agrega columnas o las crea con NOT NULL
+     * sin default, causando errores en registros pre-existentes.
+     */
+    private void migrateQuizColumns() {
+        try {
+            // task_assignments: score (nullable int), attempts (default 0)
+            safeExecute("ALTER TABLE task_assignments ADD COLUMN IF NOT EXISTS score INTEGER");
+            safeExecute("ALTER TABLE task_assignments ADD COLUMN IF NOT EXISTS attempts INTEGER DEFAULT 0");
+            safeExecute("ALTER TABLE task_assignments ALTER COLUMN attempts SET DEFAULT 0");
+            safeExecute("ALTER TABLE task_assignments ALTER COLUMN attempts DROP NOT NULL");
+            safeExecute("UPDATE task_assignments SET attempts = 0 WHERE attempts IS NULL");
+
+            // tasks: questions_json (TEXT)
+            safeExecute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS questions_json TEXT");
+
+            log.info("Migración de columnas de quiz completada.");
+        } catch (Exception ex) {
+            // En H2 (dev) el IF NOT EXISTS puede no funcionar — no es crítico
+            log.warn("Migración de quiz columns (no crítico): {}", ex.getMessage());
+        }
+    }
+
+    private void safeExecute(String sql) {
+        try {
+            entityManager.createNativeQuery(sql).executeUpdate();
+        } catch (Exception ex) {
+            log.debug("SQL ignorado ({}): {}", sql, ex.getMessage());
+        }
+    }
 }
+

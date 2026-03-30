@@ -247,6 +247,8 @@ public class TaskService {
         }
 
         int scorePercent = (int) Math.round((correct * 100.0) / questions.size());
+
+        // UPDATE existing assignment (never insert new)
         assignment.setScore(scorePercent);
         assignment.setAttempts(assignment.getAttempts() + 1);
 
@@ -255,11 +257,21 @@ public class TaskService {
             log.info("Quiz APROBADO: assignment={}, user='{}', score={}%, intento #{}",
                     assignmentId, username, scorePercent, assignment.getAttempts());
         } else {
+            // Keep PENDING so student can retry
+            assignment.setStatus(TaskStatus.PENDING);
             log.info("Quiz NO aprobado: assignment={}, user='{}', score={}%, intento #{}",
                     assignmentId, username, scorePercent, assignment.getAttempts());
         }
 
-        return mapAssignment(assignmentRepository.save(assignment));
+        try {
+            TaskAssignment saved = assignmentRepository.saveAndFlush(assignment);
+            return mapAssignment(saved);
+        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+            log.error("Error de DB al guardar quiz: assignment={}, user='{}': {}",
+                    assignmentId, username, ex.getMessage());
+            throw new BusinessException(
+                    "Ocurrió un problema al registrar tu intento. Por favor, intentá de nuevo.");
+        }
     }
 
     // ── Helpers ────────────────────────────────────────────
