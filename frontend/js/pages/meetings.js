@@ -287,20 +287,10 @@ const MeetingsPage = (() => {
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Correo institucional *</label>
+          <label class="form-label">Correo SoySiglo / Correo electrónico *</label>
           <input class="form-control" id="attEmail" type="email"
                  value="${escHtml(user?.email || '')}" required
                  placeholder="usuario@universidad.edu.ar" />
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
-          <div class="form-group">
-            <label class="form-label">Legajo *</label>
-            <input class="form-control" id="attLegajo" placeholder="Ej: 12345" required maxlength="20" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Carrera que cursás *</label>
-            <input class="form-control" id="attCarrera" placeholder="Ej: Ing. en Sistemas" required maxlength="150" />
-          </div>
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
@@ -317,8 +307,6 @@ const MeetingsPage = (() => {
           nombre:              document.getElementById('attNombre').value.trim(),
           apellido:            document.getElementById('attApellido').value.trim(),
           correoInstitucional: document.getElementById('attEmail').value.trim(),
-          legajo:              document.getElementById('attLegajo').value.trim(),
-          carrera:             document.getElementById('attCarrera').value.trim(),
         });
         Modal.close();
         Toast.success('✅ Asistencia registrada', `Reunión: ${meetingTitle}`);

@@ -30,6 +30,15 @@ public class RegisterRequest {
     private String firstName;
     private String lastName;
 
+    /** Legajo del estudiante */
+    private String legajo;
+
+    /** Carrera del estudiante */
+    private String carrera;
+
+    /** Tipo de usuario: Estudiante o Egresado */
+    private String tipoUsuario;
+
     /**
      * Rol asignado al nuevo usuario.
      * Si es null, se asigna ESTUDIANTE por defecto.

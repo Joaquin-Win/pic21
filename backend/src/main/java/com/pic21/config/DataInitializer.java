@@ -131,6 +131,11 @@ public class DataInitializer implements ApplicationRunner {
             safeExecute("ALTER TABLE tasks ALTER COLUMN status TYPE VARCHAR(20)");
             safeExecute("ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_status_check");
 
+            // users: profile columns (legajo, carrera, tipo_usuario)
+            safeExecute("ALTER TABLE users ADD COLUMN IF NOT EXISTS legajo VARCHAR(20)");
+            safeExecute("ALTER TABLE users ADD COLUMN IF NOT EXISTS carrera VARCHAR(150)");
+            safeExecute("ALTER TABLE users ADD COLUMN IF NOT EXISTS tipo_usuario VARCHAR(20)");
+
             log.info("Migración de columnas completada.");
         } catch (Exception ex) {
             // En H2 (dev) el IF NOT EXISTS puede no funcionar — no es crítico

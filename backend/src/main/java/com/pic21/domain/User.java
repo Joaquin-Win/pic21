@@ -42,6 +42,18 @@ public class User {
     @Column(nullable = false)
     private boolean enabled;
 
+    /** Legajo del estudiante */
+    @Column(name = "legajo", length = 20)
+    private String legajo;
+
+    /** Carrera del estudiante */
+    @Column(name = "carrera", length = 150)
+    private String carrera;
+
+    /** Tipo de usuario: Estudiante o Egresado */
+    @Column(name = "tipo_usuario", length = 20)
+    private String tipoUsuario;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -84,6 +84,19 @@ const LoginPage = (() => {
   }
 
   // ── REGISTRO PÚBLICO ───────────────────────────────────
+  const CARRERAS_SIGLO21 = [
+    'Abogacía', 'Contador Público', 'Licenciatura en Administración',
+    'Licenciatura en Comercio Internacional', 'Licenciatura en Comunicación',
+    'Licenciatura en Diseño Gráfico', 'Licenciatura en Educación',
+    'Licenciatura en Gestión Ambiental', 'Licenciatura en Gestión de Recursos Humanos',
+    'Licenciatura en Gestión Turística', 'Licenciatura en Informática',
+    'Licenciatura en Marketing', 'Licenciatura en Psicología',
+    'Licenciatura en Publicidad', 'Licenciatura en Relaciones Internacionales',
+    'Licenciatura en Relaciones Públicas', 'Ingeniería en Software',
+    'Ingeniería Industrial', 'Tecnicatura en Programación',
+    'Tecnicatura en Desarrollo Web', 'Tecnicatura en Marketing Digital',
+  ];
+
   function renderRegister() {
     _container.innerHTML = `
       <div class="auth-card">
@@ -112,6 +125,36 @@ const LoginPage = (() => {
             <input class="form-control" id="regPassword" type="password" placeholder="Mínimo 6 caracteres" required minlength="6" />
           </div>
 
+          <!-- Tipo de usuario -->
+          <div class="form-group">
+            <label class="form-label">Tipo de usuario *</label>
+            <select class="form-control" id="regTipoUsuario" required>
+              <option value="">Seleccioná...</option>
+              <option value="Estudiante">Estudiante</option>
+              <option value="Egresado">Egresado</option>
+            </select>
+          </div>
+
+          <!-- Carrera -->
+          <div class="form-group" id="regCarreraGroup" style="display:none;">
+            <label class="form-label">Carrera *</label>
+            <select class="form-control" id="regCarrera">
+              <option value="">Seleccioná tu carrera</option>
+              ${CARRERAS_SIGLO21.map(c => `<option value="${c}">${c}</option>`).join('')}
+              <option value="__otra__">Otra carrera...</option>
+            </select>
+          </div>
+          <div class="form-group" id="regCarreraOtraGroup" style="display:none;">
+            <label class="form-label">Especificar carrera *</label>
+            <input class="form-control" id="regCarreraOtra" placeholder="Escribí tu carrera" maxlength="150" />
+          </div>
+
+          <!-- Legajo -->
+          <div class="form-group">
+            <label class="form-label">Legajo *</label>
+            <input class="form-control" id="regLegajo" placeholder="Ej: 12345" required maxlength="20" />
+          </div>
+
           <!-- Checkbox Términos y Condiciones -->
           <div class="form-group" style="display:flex;align-items:flex-start;gap:.5rem;margin-top:.25rem;">
             <input type="checkbox" id="regTerms" style="margin-top:3px;width:18px;height:18px;cursor:pointer;" />
@@ -134,7 +177,7 @@ const LoginPage = (() => {
           </button>
         </div>
         <div class="auth-footer">
-          Se creará una cuenta con rol <strong>Estudiante</strong>
+          Se creará una cuenta según el tipo de usuario seleccionado
         </div>
       </div>`;
 
@@ -142,6 +185,25 @@ const LoginPage = (() => {
     document.getElementById('btnBackLogin')?.addEventListener('click', () => renderLogin());
     document.getElementById('openTerms')?.addEventListener('click', (e) => { e.preventDefault(); openTermsModal(); });
     document.getElementById('regFirstName')?.focus();
+
+    // Toggle carrera visibility based on tipo
+    const tipoSel = document.getElementById('regTipoUsuario');
+    const carreraGroup = document.getElementById('regCarreraGroup');
+    const carreraOtraGroup = document.getElementById('regCarreraOtraGroup');
+    const carreraSel = document.getElementById('regCarrera');
+
+    tipoSel.addEventListener('change', () => {
+      const show = tipoSel.value === 'Estudiante';
+      carreraGroup.style.display = show ? '' : 'none';
+      if (!show) {
+        carreraSel.value = '';
+        carreraOtraGroup.style.display = 'none';
+      }
+    });
+
+    carreraSel.addEventListener('change', () => {
+      carreraOtraGroup.style.display = carreraSel.value === '__otra__' ? '' : 'none';
+    });
   }
 
   // ── MODAL TÉRMINOS Y CONDICIONES ───────────────────────
@@ -188,6 +250,33 @@ const LoginPage = (() => {
       return;
     }
 
+    // Validar tipo de usuario
+    const tipoUsuario = document.getElementById('regTipoUsuario').value;
+    if (!tipoUsuario) {
+      errMsg.textContent = 'Seleccioná tu tipo de usuario.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    // Validar carrera si es estudiante
+    let carrera = null;
+    if (tipoUsuario === 'Estudiante') {
+      const carreraSel = document.getElementById('regCarrera').value;
+      if (!carreraSel) {
+        errMsg.textContent = 'Seleccioná tu carrera.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      carrera = carreraSel === '__otra__'
+        ? document.getElementById('regCarreraOtra').value.trim()
+        : carreraSel;
+      if (!carrera) {
+        errMsg.textContent = 'Escribí tu carrera.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+    }
+
     btn.disabled = true;
     setHTML('#registerBtnText', '<span class="spinner" style="width:18px;height:18px;border-width:2px;display:inline-block;"></span> Registrando...');
     errEl.classList.add('hidden');
@@ -195,11 +284,14 @@ const LoginPage = (() => {
     const email = document.getElementById('regEmail').value.trim();
 
     const body = {
-      firstName: document.getElementById('regFirstName').value.trim(),
-      lastName:  document.getElementById('regLastName').value.trim(),
-      username:  email,  // auto-generar username desde el email
-      email:     email,
-      password:  document.getElementById('regPassword').value,
+      firstName:   document.getElementById('regFirstName').value.trim(),
+      lastName:    document.getElementById('regLastName').value.trim(),
+      username:    email,  // auto-generar username desde el email
+      email:       email,
+      password:    document.getElementById('regPassword').value,
+      legajo:      document.getElementById('regLegajo').value.trim(),
+      carrera:     carrera,
+      tipoUsuario: tipoUsuario,
     };
 
     try {
@@ -213,7 +305,7 @@ const LoginPage = (() => {
         throw new Error(data.message || data.error || 'Error al registrar');
       }
       Toast.success('✅ Cuenta creada', 'Usuario registrado exitosamente. Ya podés iniciar sesión.');
-      renderLogin();  // usa _container (variable de módulo), NO "container"
+      renderLogin();
     } catch (err) {
       errMsg.textContent = err.message;
       errEl.classList.remove('hidden');

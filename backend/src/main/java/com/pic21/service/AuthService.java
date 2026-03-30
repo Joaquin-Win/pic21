@@ -93,10 +93,15 @@ public class AuthService {
             throw new BusinessException("El email '" + request.getEmail() + "' ya está registrado");
         }
 
-        // Rol por defecto: ESTUDIANTE
-        Role.RoleName roleName = (request.getRole() != null)
-                ? request.getRole()
-                : Role.RoleName.ESTUDIANTE;
+        // Rol por defecto según tipo de usuario
+        Role.RoleName roleName;
+        if (request.getRole() != null) {
+            roleName = request.getRole();
+        } else if ("Egresado".equalsIgnoreCase(request.getTipoUsuario())) {
+            roleName = Role.RoleName.EGRESADO;
+        } else {
+            roleName = Role.RoleName.ESTUDIANTE;
+        }
 
         Role role = roleRepository.findByName(roleName)
                 .orElseThrow(() -> new ResourceNotFoundException("Rol no encontrado: " + roleName));
@@ -110,6 +115,9 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
+                .legajo(request.getLegajo())
+                .carrera(request.getCarrera())
+                .tipoUsuario(request.getTipoUsuario())
                 .enabled(true)
                 .roles(roles)
                 .build();
