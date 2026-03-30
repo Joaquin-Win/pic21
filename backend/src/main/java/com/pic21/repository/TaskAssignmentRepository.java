@@ -34,4 +34,10 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
     @Modifying(clearAutomatically = true)
     @Query(value = "DELETE FROM task_assignments WHERE user_id = :userId", nativeQuery = true)
     void deleteByAssignedToUserId(@Param("userId") Long userId);
+
+    /** Actualiza score, attempts y status directamente via SQL nativo. Evita problemas de Hibernate con columnas nuevas. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "UPDATE task_assignments SET score = :score, attempts = :attempts, status = :status WHERE id = :id", nativeQuery = true)
+    void updateQuizResult(@Param("id") Long id, @Param("score") int score, @Param("attempts") int attempts, @Param("status") String status);
 }
+

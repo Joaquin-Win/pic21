@@ -248,30 +248,20 @@ public class TaskService {
 
         int scorePercent = (int) Math.round((correct * 100.0) / questions.size());
 
-        // UPDATE existing assignment (never insert new)
-        assignment.setScore(scorePercent);
-        assignment.setAttempts(assignment.getAttempts() + 1);
+        // UPDATE existing assignment via native query to avoid any Hibernate issues
+        int currentAttempts = assignment.getAttempts();
+        TaskStatus newStatus = scorePercent >= 70 ? TaskStatus.APPROVED : TaskStatus.PENDING;
 
-        if (scorePercent >= 70) {
-            assignment.setStatus(TaskStatus.APPROVED);
-            log.info("Quiz APROBADO: assignment={}, user='{}', score={}%, intento #{}",
-                    assignmentId, username, scorePercent, assignment.getAttempts());
-        } else {
-            // Keep PENDING so student can retry
-            assignment.setStatus(TaskStatus.PENDING);
-            log.info("Quiz NO aprobado: assignment={}, user='{}', score={}%, intento #{}",
-                    assignmentId, username, scorePercent, assignment.getAttempts());
-        }
+        assignmentRepository.updateQuizResult(assignmentId, scorePercent, currentAttempts + 1, newStatus.name());
 
-        try {
-            TaskAssignment saved = assignmentRepository.saveAndFlush(assignment);
-            return mapAssignment(saved);
-        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
-            log.error("Error de DB al guardar quiz: assignment={}, user='{}': {}",
-                    assignmentId, username, ex.getMessage());
-            throw new BusinessException(
-                    "Ocurrió un problema al registrar tu intento. Por favor, intentá de nuevo.");
-        }
+        log.info("Quiz {}: assignment={}, user='{}', score={}%, intento #{}",
+                newStatus == TaskStatus.APPROVED ? "APROBADO" : "NO aprobado",
+                assignmentId, username, scorePercent, currentAttempts + 1);
+
+        // Reload and return
+        TaskAssignment updated = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Asignación", assignmentId));
+        return mapAssignment(updated);
     }
 
     // ── Helpers ────────────────────────────────────────────
