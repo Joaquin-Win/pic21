@@ -38,4 +38,9 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     @Modifying(clearAutomatically = true)
     @Query(value = "DELETE FROM attendances WHERE meeting_id = :meetingId", nativeQuery = true)
     void deleteByMeetingId(@Param("meetingId") Long meetingId);
+
+    /** Elimina todas las asistencias de un usuario. */
+    @Modifying(clearAutomatically = true)
+    @Query(value = "DELETE FROM attendances WHERE user_id = :userId", nativeQuery = true)
+    void deleteByUserId(@Param("userId") Long userId);
 }

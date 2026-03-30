@@ -122,16 +122,30 @@ public class GlobalExceptionHandler {
     }
 
     // -------------------------------------------------------------------------
-    // 409 — Conflicto de restricción de BD (ej: asistencia duplicada)
+    // 409 — Conflicto de restricción de BD (ej: asistencia duplicada, FK)
     // -------------------------------------------------------------------------
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrity(
             org.springframework.dao.DataIntegrityViolationException ex,
             HttpServletRequest request) {
 
-        log.warn("[Handler] DataIntegrityViolationException en {}: {}", request.getRequestURI(), ex.getMessage());
-        return build(HttpStatus.CONFLICT, "Conflict",
-                "Registro duplicado. Ya existe un dato igual en el sistema.", request);
+        String rootMsg = ex.getMostSpecificCause() != null
+                ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+        log.warn("[Handler] DataIntegrityViolationException en {}: {}", request.getRequestURI(), rootMsg);
+
+        // Determinar si es duplicate key o FK constraint
+        String message;
+        if (rootMsg != null && (rootMsg.contains("unique") || rootMsg.contains("duplicate")
+                || rootMsg.contains("Unique") || rootMsg.contains("llave duplicada"))) {
+            message = "Registro duplicado. Ya existe un dato igual en el sistema.";
+        } else if (rootMsg != null && (rootMsg.contains("foreign key") || rootMsg.contains("violates foreign key")
+                || rootMsg.contains("is still referenced") || rootMsg.contains("referential integrity"))) {
+            message = "No se puede realizar esta acción porque el registro tiene datos asociados.";
+        } else {
+            message = "No se pudo completar la operación por un conflicto en los datos.";
+        }
+
+        return build(HttpStatus.CONFLICT, "Conflict", message, request);
     }
 
     // -------------------------------------------------------------------------

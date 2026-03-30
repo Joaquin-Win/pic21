@@ -7,7 +7,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Datos públicos de un usuario (nunca se expone la contraseña).
+ * Datos públicos de un usuario.
+ * passwordHash se muestra SOLO en el panel de admin.
  */
 @Getter
 @Builder
@@ -19,6 +20,8 @@ public class UserResponse {
     private String firstName;
     private String lastName;
     private boolean enabled;
+    private String passwordHash;
     private LocalDateTime createdAt;
     private List<String> roles;
 }
+

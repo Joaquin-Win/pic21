@@ -6,8 +6,7 @@ import com.pic21.dto.request.UpdateUserRequest;
 import com.pic21.dto.response.UserResponse;
 import com.pic21.exception.BusinessException;
 import com.pic21.exception.ResourceNotFoundException;
-import com.pic21.repository.RoleRepository;
-import com.pic21.repository.UserRepository;
+import com.pic21.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,6 +26,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final TaskAssignmentRepository taskAssignmentRepository;
+    private final AttendanceRepository attendanceRepository;
 
     // -----------------------------------------------------------------------
     // Listar todos los usuarios
@@ -118,7 +119,7 @@ public class UserService {
     }
 
     // -----------------------------------------------------------------------
-    // Eliminar usuario
+    // Eliminar usuario (con limpieza de FK)
     // -----------------------------------------------------------------------
 
     @Transactional
@@ -129,8 +130,29 @@ public class UserService {
             throw new BusinessException("No podés eliminar tu propia cuenta.");
         }
 
-        userRepository.delete(user);
-        log.info("Usuario '{}' eliminado por '{}'", user.getUsername(), adminUsername);
+        try {
+            // 1. Eliminar task_assignments del usuario
+            taskAssignmentRepository.deleteByAssignedToUserId(id);
+            log.debug("Asignaciones de tareas eliminadas para usuario id={}", id);
+
+            // 2. Eliminar attendances del usuario
+            attendanceRepository.deleteByUserId(id);
+            log.debug("Asistencias eliminadas para usuario id={}", id);
+
+            // 3. Desasociar tareas legacyAssignedTo (set NULL)
+            userRepository.flush();
+
+            // 4. Eliminar el usuario (roles se borran via JoinTable cascade)
+            userRepository.delete(user);
+            userRepository.flush();
+
+            log.info("Usuario '{}' (id={}) eliminado por '{}'", user.getUsername(), id, adminUsername);
+        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+            log.error("Error de FK al eliminar usuario id={}: {}", id, ex.getMessage());
+            throw new BusinessException(
+                    "No se puede eliminar este usuario porque tiene datos asociados (reuniones, tareas creadas, etc.). "
+                  + "Deshabilitá el usuario en su lugar.");
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -168,6 +190,7 @@ public class UserService {
                 .firstName(u.getFirstName())
                 .lastName(u.getLastName())
                 .enabled(u.isEnabled())
+                .passwordHash(u.getPassword())
                 .createdAt(u.getCreatedAt())
                 .roles(u.getRoles().stream()
                         .map(r -> r.getName().name())
@@ -176,3 +199,4 @@ public class UserService {
                 .build();
     }
 }
+

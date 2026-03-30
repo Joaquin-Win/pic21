@@ -3,6 +3,7 @@ package com.pic21.repository;
 import com.pic21.domain.TaskAssignment;
 import com.pic21.domain.TaskStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -28,4 +29,9 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
 
     /** Cuenta de asignaciones pendientes por tarea. */
     long countByTaskIdAndStatus(Long taskId, TaskStatus status);
+
+    /** Elimina todas las asignaciones de un usuario. */
+    @Modifying(clearAutomatically = true)
+    @Query(value = "DELETE FROM task_assignments WHERE user_id = :userId", nativeQuery = true)
+    void deleteByAssignedToUserId(@Param("userId") Long userId);
 }
