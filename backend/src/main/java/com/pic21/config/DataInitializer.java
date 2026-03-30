@@ -43,9 +43,9 @@ public class DataInitializer implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
+        migrateQuizColumns();  // Must run BEFORE initRoles to drop CHECK constraints
         initRoles();
         initAdmin();
-        migrateQuizColumns();
     }
 
     private void initRoles() {
@@ -107,6 +107,10 @@ public class DataInitializer implements ApplicationRunner {
      */
     private void migrateQuizColumns() {
         try {
+            // ── ROLES: drop CHECK constraint so new roles (EGRESADO) can be inserted ──
+            safeExecute("ALTER TABLE roles DROP CONSTRAINT IF EXISTS roles_name_check");
+            safeExecute("ALTER TABLE roles ALTER COLUMN name TYPE VARCHAR(50)");
+
             // task_assignments: score (nullable int), attempts (default 0)
             safeExecute("ALTER TABLE task_assignments ADD COLUMN IF NOT EXISTS score INTEGER");
             safeExecute("ALTER TABLE task_assignments ADD COLUMN IF NOT EXISTS attempts INTEGER DEFAULT 0");
@@ -118,7 +122,6 @@ public class DataInitializer implements ApplicationRunner {
             safeExecute("ALTER TABLE task_assignments ALTER COLUMN status TYPE VARCHAR(20)");
 
             // Drop any CHECK constraint on status that might block APPROVED
-            // PostgreSQL auto-generates constraint names like: task_assignments_status_check
             safeExecute("ALTER TABLE task_assignments DROP CONSTRAINT IF EXISTS task_assignments_status_check");
 
             // tasks: questions_json (TEXT)
@@ -128,7 +131,7 @@ public class DataInitializer implements ApplicationRunner {
             safeExecute("ALTER TABLE tasks ALTER COLUMN status TYPE VARCHAR(20)");
             safeExecute("ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_status_check");
 
-            log.info("Migración de columnas de quiz completada.");
+            log.info("Migración de columnas completada.");
         } catch (Exception ex) {
             // En H2 (dev) el IF NOT EXISTS puede no funcionar — no es crítico
             log.warn("Migración de quiz columns (no crítico): {}", ex.getMessage());
