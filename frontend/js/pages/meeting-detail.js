@@ -144,7 +144,7 @@ const MeetingDetailPage = (() => {
     return `
       <div class="table-wrapper">
         <table>
-          <thead><tr><th>#</th><th>Usuario</th><th>Nombre</th><th>Apellido</th><th>Correo</th><th>Legajo</th><th>Carrera</th><th>Hora de registro</th></tr></thead>
+          <thead><tr><th>#</th><th>Usuario</th><th>Nombre</th><th>Apellido</th><th>Correo</th><th>Hora de registro</th></tr></thead>
           <tbody>
             ${arr.map((a, i) => `
               <tr>
@@ -153,8 +153,6 @@ const MeetingDetailPage = (() => {
                 <td>${escHtml(a.firstName || a.user?.firstName || '—')}</td>
                 <td>${escHtml(a.lastName  || a.user?.lastName  || '—')}</td>
                 <td>${escHtml(a.email || '—')}</td>
-                <td>${escHtml(a.legajo || '—')}</td>
-                <td>${escHtml(a.carrera || '—')}</td>
                 <td>${formatDate(a.registeredAt)}</td>
               </tr>`).join('')}
           </tbody>
@@ -305,29 +303,6 @@ const MeetingDetailPage = (() => {
   // ── Attendance form modal ──
   function openAttendanceFormModal(meeting, canManage, container) {
     const user = AuthService.getUser();
-    const CARRERAS_SIGLO21 = [
-      'Abogacía',
-      'Contador Público',
-      'Licenciatura en Administración',
-      'Licenciatura en Comercio Internacional',
-      'Licenciatura en Comunicación',
-      'Licenciatura en Diseño Gráfico',
-      'Licenciatura en Educación',
-      'Licenciatura en Gestión Ambiental',
-      'Licenciatura en Gestión de Recursos Humanos',
-      'Licenciatura en Gestión Turística',
-      'Licenciatura en Informática',
-      'Licenciatura en Marketing',
-      'Licenciatura en Psicología',
-      'Licenciatura en Publicidad',
-      'Licenciatura en Relaciones Internacionales',
-      'Licenciatura en Relaciones Públicas',
-      'Ingeniería en Software',
-      'Ingeniería Industrial',
-      'Tecnicatura en Programación',
-      'Tecnicatura en Desarrollo Web',
-      'Tecnicatura en Marketing Digital',
-    ];
 
     Modal.open(`Registrar asistencia \u2014 ${meeting.title}`, `
       <form id="attendDetailForm">
@@ -342,83 +317,18 @@ const MeetingDetailPage = (() => {
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Correo institucional</label>
+          <label class="form-label">Correo SoySiglo / Correo electr\u00f3nico</label>
           <input class="form-control" id="adEmail" value="${escHtml(user?.email || '')}" readonly />
         </div>
-        <div class="form-group">
-          <label class="form-label">Legajo *</label>
-          <input class="form-control" id="adLegajo" placeholder="Ej: 12345" required maxlength="20" />
-        </div>
-
-        <!-- Tipo de usuario -->
-        <div class="form-group">
-          <label class="form-label">Tipo de usuario *</label>
-          <div style="display:flex;gap:1.5rem;margin-top:.35rem;">
-            <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.95rem;">
-              <input type="radio" name="tipoUsuario" value="Alumno" id="adTipoAlumno" required /> Alumno
-            </label>
-            <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.95rem;">
-              <input type="radio" name="tipoUsuario" value="Egresado" id="adTipoEgresado" /> Egresado
-            </label>
-          </div>
-        </div>
-
-        <!-- Carrera (solo para alumnos) -->
-        <div class="form-group" id="adCarreraGroup" style="display:none;">
-          <label class="form-label">Carrera *</label>
-          <select class="form-control" id="adCarreraSelect">
-            <option value="">Seleccion\u00e1 tu carrera</option>
-            ${CARRERAS_SIGLO21.map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('')}
-            <option value="__otra__">Otra</option>
-          </select>
-        </div>
-        <div class="form-group" id="adCarreraOtraGroup" style="display:none;">
-          <label class="form-label">Especificar carrera *</label>
-          <input class="form-control" id="adCarreraOtra" placeholder="Escrib\u00ed tu carrera" maxlength="150" />
-        </div>
-
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
           <button type="submit" class="btn btn-primary" id="adSubmitBtn">\u2705 Registrar</button>
         </div>
       </form>`);
 
-    // Toggle carrera visibility based on tipo
-    const tipoRadios = document.querySelectorAll('input[name="tipoUsuario"]');
-    const carreraGroup = document.getElementById('adCarreraGroup');
-    const carreraOtraGroup = document.getElementById('adCarreraOtraGroup');
-    const carreraSelect = document.getElementById('adCarreraSelect');
-    const carreraOtra = document.getElementById('adCarreraOtra');
-
-    tipoRadios.forEach(r => r.addEventListener('change', () => {
-      const isAlumno = document.getElementById('adTipoAlumno').checked;
-      carreraGroup.style.display = isAlumno ? '' : 'none';
-      if (!isAlumno) {
-        carreraOtraGroup.style.display = 'none';
-        carreraSelect.value = '';
-        carreraOtra.value = '';
-      }
-    }));
-
-    carreraSelect.addEventListener('change', () => {
-      carreraOtraGroup.style.display = carreraSelect.value === '__otra__' ? '' : 'none';
-      if (carreraSelect.value !== '__otra__') carreraOtra.value = '';
-    });
-
     document.getElementById('attendDetailForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('adSubmitBtn');
-      const tipoUsuario = document.querySelector('input[name="tipoUsuario"]:checked')?.value;
-      if (!tipoUsuario) { Toast.error('Error', 'Seleccion\u00e1 si sos Alumno o Egresado'); return; }
-
-      let carrera = null;
-      if (tipoUsuario === 'Alumno') {
-        const sel = carreraSelect.value;
-        if (!sel) { Toast.error('Error', 'Seleccion\u00e1 tu carrera'); return; }
-        carrera = sel === '__otra__' ? carreraOtra.value.trim() : sel;
-        if (!carrera) { Toast.error('Error', 'Escrib\u00ed tu carrera'); return; }
-      }
-
       btn.disabled = true;
       btn.textContent = 'Registrando...';
       try {
@@ -426,9 +336,6 @@ const MeetingDetailPage = (() => {
           nombre:              document.getElementById('adNombre').value.trim(),
           apellido:            document.getElementById('adApellido').value.trim(),
           correoInstitucional: document.getElementById('adEmail').value.trim(),
-          legajo:              document.getElementById('adLegajo').value.trim(),
-          carrera:             carrera,
-          tipoUsuario:         tipoUsuario,
         });
         Modal.close();
         Toast.success('\u2705 Asistencia registrada', meeting.title);

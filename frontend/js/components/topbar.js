@@ -16,33 +16,13 @@ const Topbar = (() => {
       avatar.title = AuthService.getDisplayName();
     }
 
-    // Dark mode toggle
+    // Force light mode (dark mode removed)
+    document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.removeItem('pic21_theme');
+
+    // Hide dark mode toggle button if it exists
     const themeToggle = document.getElementById('themeToggle');
-    const sunIcon  = themeToggle?.querySelector('.icon-sun');
-    const moonIcon = themeToggle?.querySelector('.icon-moon');
-
-    const savedTheme = localStorage.getItem('pic21_theme') || 'light';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    updateIcons(savedTheme);
-
-    themeToggle?.addEventListener('click', () => {
-      const current = document.documentElement.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('pic21_theme', next);
-      updateIcons(next);
-    });
-
-    function updateIcons(theme) {
-      if (!sunIcon || !moonIcon) return;
-      if (theme === 'dark') {
-        sunIcon.classList.add('hidden');
-        moonIcon.classList.remove('hidden');
-      } else {
-        sunIcon.classList.remove('hidden');
-        moonIcon.classList.add('hidden');
-      }
-    }
+    if (themeToggle) themeToggle.style.display = 'none';
   }
 
   function reset() { built = false; }

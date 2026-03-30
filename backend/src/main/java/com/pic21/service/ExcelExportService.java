@@ -77,7 +77,7 @@ public class ExcelExportService {
             // ── Cabecera de columnas ────────────────────────────────────────
             CellStyle headerStyle = createHeaderStyle(workbook);
             Row headerRow = sheet.createRow(5);
-            String[] headers = {"#", "Usuario", "Nombre", "Apellido", "Correo", "Legajo", "Tipo de usuario", "Carrera", "Registrado en"};
+            String[] headers = {"#", "Usuario", "Nombre", "Apellido", "Correo", "Legajo", "Tipo de usuario", "Carrera", "Rol", "Registrado en"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -95,10 +95,11 @@ public class ExcelExportService {
                 createDataCell(row, 2, nvl(a.getUser().getFirstName()), dataStyle);
                 createDataCell(row, 3, nvl(a.getUser().getLastName()), dataStyle);
                 createDataCell(row, 4, nvl(a.getUser().getEmail()), dataStyle);
-                createDataCell(row, 5, nvl(a.getLegajo()), dataStyle);
-                createDataCell(row, 6, nvl(a.getTipoUsuario()), dataStyle);
-                createDataCell(row, 7, nvl(a.getCarrera()), dataStyle);
-                createDataCell(row, 8,
+                createDataCell(row, 5, nvl(a.getUser().getLegajo()), dataStyle);
+                createDataCell(row, 6, nvl(a.getUser().getTipoUsuario()), dataStyle);
+                createDataCell(row, 7, nvl(a.getUser().getCarrera()), dataStyle);
+                createDataCell(row, 8, getUserRoles(a.getUser()), dataStyle);
+                createDataCell(row, 9,
                         a.getRegisteredAt() != null ? a.getRegisteredAt().format(DATE_FMT) : "-", dataStyle);
             }
 
@@ -173,7 +174,7 @@ public class ExcelExportService {
                 Sheet sheet = workbook.createSheet(sheetName);
 
                 Row hRow = sheet.createRow(0);
-                String[] headers = {"#", "Usuario", "Nombre", "Apellido", "Correo", "Legajo", "Tipo de usuario", "Carrera", "Registrado en"};
+                String[] headers = {"#", "Usuario", "Nombre", "Apellido", "Correo", "Legajo", "Tipo de usuario", "Carrera", "Rol", "Registrado en"};
                 for (int i = 0; i < headers.length; i++) {
                     Cell c = hRow.createCell(i);
                     c.setCellValue(headers[i]);
@@ -189,10 +190,11 @@ public class ExcelExportService {
                     createDataCell(r, 2, nvl(a.getUser().getFirstName()), dataStyle);
                     createDataCell(r, 3, nvl(a.getUser().getLastName()), dataStyle);
                     createDataCell(r, 4, nvl(a.getUser().getEmail()), dataStyle);
-                    createDataCell(r, 5, nvl(a.getLegajo()), dataStyle);
-                    createDataCell(r, 6, nvl(a.getTipoUsuario()), dataStyle);
-                    createDataCell(r, 7, nvl(a.getCarrera()), dataStyle);
-                    createDataCell(r, 8,
+                    createDataCell(r, 5, nvl(a.getUser().getLegajo()), dataStyle);
+                    createDataCell(r, 6, nvl(a.getUser().getTipoUsuario()), dataStyle);
+                    createDataCell(r, 7, nvl(a.getUser().getCarrera()), dataStyle);
+                    createDataCell(r, 8, getUserRoles(a.getUser()), dataStyle);
+                    createDataCell(r, 9,
                             a.getRegisteredAt() != null ? a.getRegisteredAt().format(DATE_FMT) : "-",
                             dataStyle);
                 }
@@ -298,5 +300,13 @@ public class ExcelExportService {
 
     private String nvl(String value) {
         return value != null ? value : "";
+    }
+
+    /** Extrae los nombres de roles del usuario como string separado por coma. */
+    private String getUserRoles(com.pic21.domain.User user) {
+        if (user == null || user.getRoles() == null || user.getRoles().isEmpty()) return "";
+        return user.getRoles().stream()
+                .map(r -> r.getName().name())
+                .collect(java.util.stream.Collectors.joining(", "));
     }
 }
