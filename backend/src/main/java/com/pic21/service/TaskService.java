@@ -50,6 +50,7 @@ public class TaskService {
     private final MeetingRepository        meetingRepository;
     private final UserRepository           userRepository;
     private final AttendanceRepository     attendanceRepository;
+    private final jakarta.persistence.EntityManager entityManager;
 
     private static final Set<RoleName> ASSIGNABLE_ROLES = new HashSet<>(Arrays.asList(
             RoleName.ESTUDIANTE, RoleName.AYUDANTE, RoleName.EGRESADO
@@ -248,19 +249,23 @@ public class TaskService {
 
         int scorePercent = (int) Math.round((correct * 100.0) / questions.size());
 
-        // UPDATE existing assignment via native query to avoid any Hibernate issues
+        // Capture IDs BEFORE native query clears persistence context
         int currentAttempts = assignment.getAttempts();
         TaskStatus newStatus = scorePercent >= 70 ? TaskStatus.APPROVED : TaskStatus.PENDING;
+        Long meetingId = assignment.getTask().getMeeting().getId();
+        String meetingTitle = assignment.getTask().getMeeting().getTitle();
+        Long userId = user.getId();
 
+        // UPDATE existing assignment via native query
         assignmentRepository.updateQuizResult(assignmentId, scorePercent, currentAttempts + 1, newStatus.name());
 
         log.info("Quiz {}: assignment={}, user='{}', score={}%, intento #{}",
                 newStatus == TaskStatus.APPROVED ? "APROBADO" : "NO aprobado",
                 assignmentId, username, scorePercent, currentAttempts + 1);
 
-        // Si aprobó, registrar asistencia automáticamente en la reunión asociada
+        // Si aprobó, registrar asistencia automáticamente via SQL nativo
         if (newStatus == TaskStatus.APPROVED) {
-            registerAutoAttendance(assignment.getTask().getMeeting(), user);
+            registerAutoAttendance(meetingId, userId, username, meetingTitle);
         }
 
         // Update in-memory object (already has task & user loaded) — avoid reloading from DB
@@ -272,26 +277,24 @@ public class TaskService {
 
     /**
      * Registra asistencia automáticamente cuando un usuario aprueba el quiz.
-     * No duplica si ya existe un registro para ese meeting + user.
+     * Usa INSERT nativo con ON CONFLICT DO NOTHING para evitar duplicados
+     * sin marcar la transacción como rollback-only.
      */
-    private void registerAutoAttendance(Meeting meeting, User user) {
+    private void registerAutoAttendance(Long meetingId, Long userId, String username, String meetingTitle) {
         try {
-            if (!attendanceRepository.existsByMeetingAndUser(meeting, user)) {
-                Attendance attendance = Attendance.builder()
-                        .meeting(meeting)
-                        .user(user)
-                        .build();
-                attendanceRepository.save(attendance);
-                log.info("Asistencia recuperada automáticamente: user='{}', meeting='{}'",
-                        user.getUsername(), meeting.getTitle());
-            } else {
-                log.debug("Asistencia ya existía para user='{}', meeting='{}' — no se duplica",
-                        user.getUsername(), meeting.getTitle());
-            }
+            entityManager.createNativeQuery(
+                    "INSERT INTO attendances (meeting_id, user_id, registered_at) " +
+                    "VALUES (:meetingId, :userId, NOW()) " +
+                    "ON CONFLICT (meeting_id, user_id) DO NOTHING")
+                    .setParameter("meetingId", meetingId)
+                    .setParameter("userId", userId)
+                    .executeUpdate();
+            log.info("Asistencia recuperada automáticamente: user='{}', meeting='{}'",
+                    username, meetingTitle);
         } catch (Exception ex) {
             // No fallar el quiz por error en asistencia — solo loguear
-            log.warn("No se pudo registrar asistencia automática para user='{}', meeting='{}': {}",
-                    user.getUsername(), meeting.getTitle(), ex.getMessage());
+            log.warn("No se pudo registrar asistencia automática para user='{}': {}",
+                    username, ex.getMessage());
         }
     }
 
