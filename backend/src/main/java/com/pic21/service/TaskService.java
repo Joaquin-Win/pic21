@@ -52,7 +52,7 @@ public class TaskService {
     private final AttendanceRepository     attendanceRepository;
 
     private static final Set<RoleName> ASSIGNABLE_ROLES = new HashSet<>(Arrays.asList(
-            RoleName.ESTUDIANTE, RoleName.AYUDANTE
+            RoleName.ESTUDIANTE, RoleName.AYUDANTE, RoleName.EGRESADO
     ));
 
     // ── Crear tarea general + asignaciones ────────────────
@@ -258,11 +258,41 @@ public class TaskService {
                 newStatus == TaskStatus.APPROVED ? "APROBADO" : "NO aprobado",
                 assignmentId, username, scorePercent, currentAttempts + 1);
 
+        // Si aprobó, registrar asistencia automáticamente en la reunión asociada
+        if (newStatus == TaskStatus.APPROVED) {
+            registerAutoAttendance(assignment.getTask().getMeeting(), user);
+        }
+
         // Update in-memory object (already has task & user loaded) — avoid reloading from DB
         assignment.setScore(scorePercent);
         assignment.setAttempts(currentAttempts + 1);
         assignment.setStatus(newStatus);
         return mapAssignment(assignment);
+    }
+
+    /**
+     * Registra asistencia automáticamente cuando un usuario aprueba el quiz.
+     * No duplica si ya existe un registro para ese meeting + user.
+     */
+    private void registerAutoAttendance(Meeting meeting, User user) {
+        try {
+            if (!attendanceRepository.existsByMeetingAndUser(meeting, user)) {
+                Attendance attendance = Attendance.builder()
+                        .meeting(meeting)
+                        .user(user)
+                        .build();
+                attendanceRepository.save(attendance);
+                log.info("Asistencia recuperada automáticamente: user='{}', meeting='{}'",
+                        user.getUsername(), meeting.getTitle());
+            } else {
+                log.debug("Asistencia ya existía para user='{}', meeting='{}' — no se duplica",
+                        user.getUsername(), meeting.getTitle());
+            }
+        } catch (Exception ex) {
+            // No fallar el quiz por error en asistencia — solo loguear
+            log.warn("No se pudo registrar asistencia automática para user='{}', meeting='{}': {}",
+                    user.getUsername(), meeting.getTitle(), ex.getMessage());
+        }
     }
 
     // ── Helpers ────────────────────────────────────────────

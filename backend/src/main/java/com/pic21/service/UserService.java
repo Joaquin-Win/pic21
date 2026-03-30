@@ -69,7 +69,7 @@ public class UserService {
                         return roleRepository.findByName(roleName)
                                 .orElseThrow(() -> new BusinessException("Rol inválido: " + rn));
                     } catch (IllegalArgumentException e) {
-                        throw new BusinessException("Rol inválido: " + rn + ". Roles válidos: ADMIN, PROFESOR, AYUDANTE, ESTUDIANTE.");
+                        throw new BusinessException("Rol inválido: " + rn + ". Roles válidos: ADMIN, PROFESOR, AYUDANTE, ESTUDIANTE, EGRESADO.");
                     }
                 })
                 .collect(Collectors.toSet());

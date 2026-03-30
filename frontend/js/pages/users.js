@@ -10,7 +10,7 @@
 
 const UsersPage = (() => {
   let allUsers = [];
-  const VALID_ROLES = ['ADMIN', 'PROFESOR', 'AYUDANTE', 'ESTUDIANTE'];
+  const VALID_ROLES = ['ADMIN', 'PROFESOR', 'AYUDANTE', 'ESTUDIANTE', 'EGRESADO'];
 
   function render(container) {
     container.innerHTML = `

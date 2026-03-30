@@ -34,11 +34,13 @@ public class Role {
     /**
      * Roles disponibles en el sistema PIC21.
      * PROFESOR y AYUDANTE tienen los mismos permisos de negocio.
+     * EGRESADO tiene los mismos permisos que ESTUDIANTE.
      */
     public enum RoleName {
         ADMIN,
         PROFESOR,
         AYUDANTE,
-        ESTUDIANTE
+        ESTUDIANTE,
+        EGRESADO
     }
 }

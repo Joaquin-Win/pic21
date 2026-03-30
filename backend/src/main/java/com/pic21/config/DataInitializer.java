@@ -56,6 +56,7 @@ public class DataInitializer implements ApplicationRunner {
                     case PROFESOR   -> "Profesor de la institución";
                     case AYUDANTE   -> "Ayudante de cátedra";
                     case ESTUDIANTE -> "Estudiante";
+                    case EGRESADO   -> "Egresado";
                 };
                 roleRepository.save(new Role(roleName, desc));
                 log.info("Rol creado: {}", roleName);

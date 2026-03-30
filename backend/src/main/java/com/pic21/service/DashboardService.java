@@ -41,10 +41,10 @@ public class DashboardService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMIN','PROFESOR','AYUDANTE')")
     public DashboardResponse getDashboard() {
-        // Total de estudiantes registrados en el sistema
+        // Total de estudiantes y egresados registrados en el sistema
         long totalStudents = userRepository.findAll().stream()
                 .filter(u -> u.getRoles().stream()
-                        .anyMatch(r -> r.getName() == RoleName.ESTUDIANTE))
+                        .anyMatch(r -> r.getName() == RoleName.ESTUDIANTE || r.getName() == RoleName.EGRESADO))
                 .count();
 
         // Total de reuniones
