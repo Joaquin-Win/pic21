@@ -131,7 +131,7 @@ const LoginPage = (() => {
             <select class="form-control" id="regTipoUsuario" required>
               <option value="">Seleccioná...</option>
               <option value="Estudiante">Estudiante</option>
-              <option value="Egresado">Egresado</option>
+              <option value="Egresado">Egresado/Profesor</option>
             </select>
           </div>
 
