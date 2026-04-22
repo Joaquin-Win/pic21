@@ -231,7 +231,7 @@ public class MeetingService {
     }
 
     private User findUserOrThrow(String username) {
-        return userRepository.findByUsername(username)
+        return userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + username));
     }
 

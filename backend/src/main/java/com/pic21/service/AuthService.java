@@ -46,9 +46,12 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
+        // Normalizar a minúsculas para evitar duplicados por case
+        String normalizedUsername = request.getUsername().toLowerCase().trim();
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
+                        normalizedUsername,
                         request.getPassword()
                 )
         );
@@ -57,15 +60,15 @@ public class AuthService {
 
         String token = jwtTokenProvider.generateToken(authentication);
 
-        User user = userRepository.findByUsername(request.getUsername())
-                .or(() -> userRepository.findByEmail(request.getUsername()))
+        User user = userRepository.findByUsernameIgnoreCase(normalizedUsername)
+                .or(() -> userRepository.findByEmailIgnoreCase(normalizedUsername))
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario", 0L));
 
         List<String> roles = user.getRoles().stream()
                 .map(r -> r.getName().name())
                 .collect(Collectors.toList());
 
-        log.info("Login exitoso para usuario: {}", request.getUsername());
+        log.info("Login exitoso para usuario: {}", normalizedUsername);
 
         return AuthResponse.builder()
                 .token(token)
@@ -85,12 +88,16 @@ public class AuthService {
 
     @Transactional
     public UserResponse register(RegisterRequest request) {
+        // Normalizar email y username a minúsculas
+        String normalizedEmail = request.getEmail().toLowerCase().trim();
+        String normalizedUsername = request.getUsername().toLowerCase().trim();
+
         // Validar unicidad de username y email
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new BusinessException("El nombre de usuario '" + request.getUsername() + "' ya está en uso");
+        if (userRepository.existsByUsernameIgnoreCase(normalizedUsername)) {
+            throw new BusinessException("El nombre de usuario '" + normalizedUsername + "' ya está en uso");
         }
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException("El email '" + request.getEmail() + "' ya está registrado");
+        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new BusinessException("El email '" + normalizedEmail + "' ya está registrado");
         }
 
         // Rol por defecto según tipo de usuario
@@ -110,8 +117,8 @@ public class AuthService {
         roles.add(role);
 
         User user = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail())
+                .username(normalizedUsername)
+                .email(normalizedEmail)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())

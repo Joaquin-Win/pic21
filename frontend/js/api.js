@@ -24,14 +24,27 @@ const Api = (() => {
     }
 
     if (options.headers) Object.assign(headers, options.headers);
+    
+    // Solo enviar este header cuando realmente estamos pasando por ngrok.
+    if (BASE.includes('ngrok')) {
+      headers['ngrok-skip-browser-warning'] = 'true';
+    }
+
     const fetchOptions = { method, headers };
     if (fetchBody) fetchOptions.body = fetchBody;
 
     try {
       const resp = await fetch(`${BASE}${path}`, fetchOptions);
 
-      // 401 → logout
+      // 401 → credenciales inválidas o token expirado
       if (resp.status === 401) {
+        // Si es un intento de login, NO hacer logout (no hay sesión aún).
+        // Solo lanzar error para que el caller lo maneje.
+        if (path === '/auth/login') {
+          const data401 = await resp.json().catch(() => null);
+          throw new ApiError(data401?.message || 'Credenciales inválidas', 401, data401);
+        }
+        // Para cualquier otra ruta, es un token expirado → logout
         AuthService.logout();
         return;
       }

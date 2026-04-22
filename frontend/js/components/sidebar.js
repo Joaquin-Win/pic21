@@ -15,8 +15,8 @@ const Sidebar = (() => {
     {
       section: 'Gestión',
       items: [
-        { label: 'Reuniones', href: '/meetings', icon: '📅', roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE'] },
-        { label: 'Tareas',    href: '/tasks',    icon: '📋', roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE'] },
+        { label: 'Reuniones',             href: '/meetings', icon: '📅', roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE','EGRESADO'] },
+        { label: 'Recuperar asistencia', href: '/tasks',    icon: '📋', roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE','EGRESADO'] },
       ]
     },
     {

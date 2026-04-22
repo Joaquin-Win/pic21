@@ -16,6 +16,9 @@ public class TaskAssignmentResponse {
     private Long taskId;
     private String taskTitle;
 
+    private Long meetingId;
+    private String meetingTitle;
+
     private Long userId;
     private String username;
     private String firstName;

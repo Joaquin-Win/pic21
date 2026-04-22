@@ -65,7 +65,7 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     private void initAdmin() {
-        Optional<User> existing = userRepository.findByUsername("admin");
+        Optional<User> existing = userRepository.findByUsernameIgnoreCase("admin");
         if (existing.isPresent()) {
             User admin = existing.get();
             // Actualizar la contraseña si cambió

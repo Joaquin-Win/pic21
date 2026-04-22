@@ -77,7 +77,7 @@ public class ExcelExportService {
             // ── Cabecera de columnas ────────────────────────────────────────
             CellStyle headerStyle = createHeaderStyle(workbook);
             Row headerRow = sheet.createRow(5);
-            String[] headers = {"#", "Usuario", "Nombre", "Apellido", "Correo", "Legajo", "Carrera", "Rol", "Registrado en"};
+            String[] headers = {"#", "Nombre", "Apellido", "Correo", "Legajo", "Carrera", "Rol", "Registrado en"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -91,14 +91,13 @@ public class ExcelExportService {
             for (Attendance a : attendances) {
                 Row row = sheet.createRow(rowNum++);
                 createDataCell(row, 0, String.valueOf(index++), dataStyle);
-                createDataCell(row, 1, a.getUser().getUsername(), dataStyle);
-                createDataCell(row, 2, nvl(a.getUser().getFirstName()), dataStyle);
-                createDataCell(row, 3, nvl(a.getUser().getLastName()), dataStyle);
-                createDataCell(row, 4, nvl(a.getUser().getEmail()), dataStyle);
-                createDataCell(row, 5, nvl(a.getUser().getLegajo()), dataStyle);
-                createDataCell(row, 6, nvl(a.getUser().getCarrera()), dataStyle);
-                createDataCell(row, 7, getUserRoles(a.getUser()), dataStyle);
-                createDataCell(row, 8,
+                createDataCell(row, 1, nvl(a.getUser().getFirstName()), dataStyle);
+                createDataCell(row, 2, nvl(a.getUser().getLastName()), dataStyle);
+                createDataCell(row, 3, nvl(a.getUser().getEmail()), dataStyle);
+                createDataCell(row, 4, nvl(a.getUser().getLegajo()), dataStyle);
+                createDataCell(row, 5, nvl(a.getUser().getCarrera()), dataStyle);
+                createDataCell(row, 6, getUserRoles(a.getUser()), dataStyle);
+                createDataCell(row, 7,
                         a.getRegisteredAt() != null ? a.getRegisteredAt().format(DATE_FMT) : "-", dataStyle);
             }
 
@@ -173,7 +172,7 @@ public class ExcelExportService {
                 Sheet sheet = workbook.createSheet(sheetName);
 
                 Row hRow = sheet.createRow(0);
-                String[] headers = {"#", "Usuario", "Nombre", "Apellido", "Correo", "Legajo", "Carrera", "Rol", "Registrado en"};
+                String[] headers = {"#", "Nombre", "Apellido", "Correo", "Legajo", "Carrera", "Rol", "Registrado en"};
                 for (int i = 0; i < headers.length; i++) {
                     Cell c = hRow.createCell(i);
                     c.setCellValue(headers[i]);
@@ -185,14 +184,13 @@ public class ExcelExportService {
                 for (Attendance a : attendances) {
                     Row r = sheet.createRow(rowNum++);
                     createDataCell(r, 0, String.valueOf(idx++), dataStyle);
-                    createDataCell(r, 1, a.getUser().getUsername(), dataStyle);
-                    createDataCell(r, 2, nvl(a.getUser().getFirstName()), dataStyle);
-                    createDataCell(r, 3, nvl(a.getUser().getLastName()), dataStyle);
-                    createDataCell(r, 4, nvl(a.getUser().getEmail()), dataStyle);
-                    createDataCell(r, 5, nvl(a.getUser().getLegajo()), dataStyle);
-                    createDataCell(r, 6, nvl(a.getUser().getCarrera()), dataStyle);
-                    createDataCell(r, 7, getUserRoles(a.getUser()), dataStyle);
-                    createDataCell(r, 8,
+                    createDataCell(r, 1, nvl(a.getUser().getFirstName()), dataStyle);
+                    createDataCell(r, 2, nvl(a.getUser().getLastName()), dataStyle);
+                    createDataCell(r, 3, nvl(a.getUser().getEmail()), dataStyle);
+                    createDataCell(r, 4, nvl(a.getUser().getLegajo()), dataStyle);
+                    createDataCell(r, 5, nvl(a.getUser().getCarrera()), dataStyle);
+                    createDataCell(r, 6, getUserRoles(a.getUser()), dataStyle);
+                    createDataCell(r, 7,
                             a.getRegisteredAt() != null ? a.getRegisteredAt().format(DATE_FMT) : "-",
                             dataStyle);
                 }

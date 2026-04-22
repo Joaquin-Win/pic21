@@ -4,7 +4,6 @@
 
 const MeetingsPage = (() => {
   let allMeetings = [];
-  let currentFilter = 'ALL';
 
   function render(container) {
     const isAdmin   = AuthService.isAdmin();
@@ -23,25 +22,9 @@ const MeetingsPage = (() => {
         </button>` : ''}
       </div>
 
-      <div class="filter-bar">
-        <button class="filter-btn active" data-filter="ALL">Todas</button>
-        <button class="filter-btn" data-filter="NO_INICIADA">No iniciadas</button>
-        <button class="filter-btn" data-filter="ACTIVA">Activas</button>
-        <button class="filter-btn" data-filter="BLOQUEADA">Bloqueadas</button>
-      </div>
-
       <div id="meetingsContainer">
         <div class="loading"><div class="spinner"></div></div>
       </div>`;
-
-    container.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        container.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentFilter = btn.dataset.filter;
-        renderList();
-      });
-    });
 
     if (canCreate) {
       document.getElementById('btnNewMeeting')?.addEventListener('click', openCreateModal);
@@ -63,14 +46,10 @@ const MeetingsPage = (() => {
   }
 
   function renderList() {
-    const filtered = currentFilter === 'ALL'
-      ? allMeetings
-      : allMeetings.filter(m => m.status === currentFilter);
-
     const container = document.getElementById('meetingsContainer');
     if (!container) return;
 
-    if (!filtered.length) {
+    if (!allMeetings.length) {
       showEmpty(container, 'Sin reuniones', 'No hay reuniones para mostrar');
       return;
     }
@@ -79,7 +58,7 @@ const MeetingsPage = (() => {
     const isProfesor = AuthService.isProfesor();
     const canManage  = isAdmin || isProfesor || AuthService.isAyudante();
 
-    container.innerHTML = `<div class="meetings-grid">${filtered.map(m => meetingCard(m, canManage, isAdmin, isProfesor)).join('')}</div>`;
+    container.innerHTML = `<div class="meetings-grid">${allMeetings.map(m => meetingCard(m, canManage, isAdmin, isProfesor)).join('')}</div>`;
 
     container.querySelectorAll('[data-action]').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -117,7 +96,7 @@ const MeetingsPage = (() => {
       if (isAdmin)                     actions += `<button class="btn btn-secondary btn-sm" data-action="delete"     data-id="${m.id}" style="color:#ef4444">🗑 Eliminar</button>`;
     }
     if (isActiva) {
-      actions += `<button class="btn btn-success btn-sm" data-action="attend" data-id="${m.id}">✅ Asistir</button>`;
+      actions += `<button class="btn btn-success btn-sm" data-action="attend" data-id="${m.id}">✅ Registrar asistencia</button>`;
     }
     actions += `<button class="btn btn-secondary btn-sm" data-action="detail" data-id="${m.id}">👁 Ver detalles</button>`;
 
@@ -306,7 +285,7 @@ const MeetingsPage = (() => {
         await Api.post(`/attendances/meeting/${meetingId}/self`, {
           nombre:              document.getElementById('attNombre').value.trim(),
           apellido:            document.getElementById('attApellido').value.trim(),
-          correoInstitucional: document.getElementById('attEmail').value.trim(),
+          correoInstitucional: document.getElementById('attEmail').value.toLowerCase().trim(),
         });
         Modal.close();
         Toast.success('✅ Asistencia registrada', `Reunión: ${meetingTitle}`);

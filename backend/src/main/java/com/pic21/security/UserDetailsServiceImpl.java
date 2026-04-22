@@ -27,10 +27,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username)
-                .or(() -> userRepository.findByEmail(username))
+        String normalizedUsername = username.toLowerCase().trim();
+        User user = userRepository.findByUsernameIgnoreCase(normalizedUsername)
+                .or(() -> userRepository.findByEmailIgnoreCase(normalizedUsername))
                 .orElseThrow(() -> new UsernameNotFoundException(
-                        "Usuario no encontrado: " + username));
+                        "Usuario no encontrado: " + normalizedUsername));
 
         // Convertir roles a GrantedAuthority con prefijo ROLE_
         List<SimpleGrantedAuthority> authorities = user.getRoles().stream()

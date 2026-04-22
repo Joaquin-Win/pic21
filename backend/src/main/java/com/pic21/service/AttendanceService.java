@@ -55,7 +55,7 @@ public class AttendanceService {
                     "Estado actual: " + meeting.getStatus());
         }
 
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Usuario no encontrado: " + username));
 

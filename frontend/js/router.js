@@ -9,9 +9,9 @@ const Router = (() => {
     return {
       '/login':        { page: LoginPage,         title: 'Iniciar sesión',     public: true  },
       '/dashboard':    { page: DashboardPage,     title: 'Dashboard',          roles: ['ADMIN','PROFESOR','AYUDANTE'] },
-      '/meetings':     { page: MeetingsPage,      title: 'Reuniones',          roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE'] },
-      '/meetings/:id': { page: MeetingDetailPage, title: 'Detalle de reunión', roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE'] },
-      '/tasks':        { page: TasksPage,         title: 'Tareas',             roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE'] },
+      '/meetings':     { page: MeetingsPage,      title: 'Reuniones',              roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE','EGRESADO'] },
+      '/meetings/:id': { page: MeetingDetailPage, title: 'Detalle de reunión',     roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE','EGRESADO'] },
+      '/tasks':        { page: TasksPage,         title: 'Recuperar asistencia',   roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE','EGRESADO'] },
       '/users':        { page: UsersPage,         title: 'Usuarios',           roles: ['ADMIN'] },
       '/files':        { page: FilesPage,         title: 'Archivos',           roles: ['ADMIN'] },
     };

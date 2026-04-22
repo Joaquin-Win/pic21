@@ -93,7 +93,7 @@ public class UserService {
 
         // Validar unicidad de email si cambió
         if (!user.getEmail().equalsIgnoreCase(request.getEmail())) {
-            userRepository.findByEmail(request.getEmail()).ifPresent(existing -> {
+            userRepository.findByEmailIgnoreCase(request.getEmail()).ifPresent(existing -> {
                 if (!existing.getId().equals(id)) {
                     throw new BusinessException("El email ya está en uso por otro usuario.");
                 }
@@ -102,7 +102,7 @@ public class UserService {
 
         // Validar unicidad de username si cambió
         if (!user.getUsername().equalsIgnoreCase(request.getUsername())) {
-            userRepository.findByUsername(request.getUsername()).ifPresent(existing -> {
+            userRepository.findByUsernameIgnoreCase(request.getUsername()).ifPresent(existing -> {
                 if (!existing.getId().equals(id)) {
                     throw new BusinessException("El nombre de usuario ya existe.");
                 }

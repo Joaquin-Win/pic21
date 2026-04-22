@@ -22,7 +22,7 @@ const TasksPage = (() => {
     container.innerHTML = `
       <div class="page-header">
         <div>
-          <h2>📋 Tareas</h2>
+          <h2>📋 Recuperar asistencia</h2>
           <p>${isAdmin ? 'Gestión completa — tareas generales y asignaciones' : isProf ? 'Tareas que creaste' : 'Mis tareas asignadas'}</p>
         </div>
         ${isStaff ? `<button class="btn btn-primary" id="btnToggleCreate">➕ Nueva tarea</button>` : ''}
@@ -243,7 +243,7 @@ const TasksPage = (() => {
     main.innerHTML = `
       <div class="card">
         <div class="card-header">
-          <span class="card-title">📋 Tareas generales</span>
+          <span class="card-title">📋 Recuperar asistencia — general</span>
           <span class="text-sm" style="color:var(--text-muted)">${generalTasks.length} tarea(s)</span>
         </div>
         <div class="card-body" style="padding:0">
@@ -530,7 +530,7 @@ const TasksPage = (() => {
           </div>
         </form>
       </div>
-    `);
+    `, { persistent: true });
 
     document.getElementById('quizForm').addEventListener('submit', async (e) => {
       e.preventDefault();

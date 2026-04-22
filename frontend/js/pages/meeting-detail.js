@@ -13,19 +13,25 @@ const MeetingDetailPage = (() => {
 
   async function loadDetail(container, meetingId) {
     try {
-      const [meeting, attendances] = await Promise.all([
+      const isAdminOrProf = AuthService.isAdmin() || AuthService.isProfesor();
+      const [meeting, attendances, myAssignments] = await Promise.all([
         Api.get(`/meetings/${meetingId}`),
-        AuthService.isStaff() ? Api.get(`/attendances/meeting/${meetingId}`) : Promise.resolve([]),
+        isAdminOrProf ? Api.get(`/attendances/meeting/${meetingId}`) : Promise.resolve([]),
+        !isAdminOrProf ? Api.get('/tasks/my') : Promise.resolve([]),
       ]);
       currentMeeting = meeting;
-      renderDetail(container, meeting, attendances);
+      // Filter assignments for this meeting
+      const meetingAssignment = !isAdminOrProf
+        ? (myAssignments || []).find(a => String(a.meetingId) === String(meetingId))
+        : null;
+      renderDetail(container, meeting, attendances, meetingAssignment);
     } catch (err) {
       Toast.error('Error', err.message);
       container.innerHTML = `<div class="empty-state"><h3>Error al cargar reunión</h3><p>${escHtml(err.message)}</p></div>`;
     }
   }
 
-  function renderDetail(container, meeting, attendances) {
+  function renderDetail(container, meeting, attendances, meetingAssignment) {
     const isActiva    = meeting.status === 'ACTIVA';
     const canManage   = AuthService.isStaff();
     const isAdminOrProf = AuthService.isAdmin() || AuthService.isProfesor();
@@ -94,8 +100,11 @@ const MeetingDetailPage = (() => {
       </div>
 
 
-      <!-- Attendances table (staff only) -->
-      ${canManage ? `
+      <!-- Recuperar asistencia (student/egresado) -->
+      <div id="recoverySection"></div>
+
+      <!-- Attendances table (admin/profesor only) -->
+      ${isAdminOrProf ? `
       <div class="card">
         <div class="card-header">
           <span class="card-title">👥 Lista de asistencias</span>
@@ -104,12 +113,7 @@ const MeetingDetailPage = (() => {
         <div id="attendancesTable" class="card-body">
           ${renderAttendancesTable(arr)}
         </div>
-      </div>` : `
-      <div class="card">
-        <div class="card-body">
-          <p style="color:var(--text-muted)">Para ver la lista de asistentes necesitás rol de PROFESOR, AYUDANTE o ADMIN.</p>
-        </div>
-      </div>`}
+      </div>` : ''}
     `;
 
     // Bind attend button — open form modal
@@ -137,6 +141,118 @@ const MeetingDetailPage = (() => {
     document.getElementById('btnCreateTask')?.addEventListener('click', () => {
       openCreateTaskModal(meeting.id, meeting.title);
     });
+
+    // Render recovery section for students/egresados
+    renderRecoverySection(meetingAssignment, container, meeting);
+  }
+
+  // ── Recovery section for students/egresados ──────────
+  function renderRecoverySection(assignment, container, meeting) {
+    const section = document.getElementById('recoverySection');
+    if (!section || !assignment) return;
+
+    if (assignment.status === 'APPROVED') {
+      section.innerHTML = `
+        <div class="card" style="margin-bottom:1.5rem;border-left:4px solid #10b981;">
+          <div class="card-body" style="display:flex;align-items:center;gap:1rem;">
+            <span style="font-size:1.5rem;">✅</span>
+            <div>
+              <div style="font-weight:600;color:#10b981;">Asistencia recuperada</div>
+              <div style="color:var(--text-muted);font-size:.85rem;">Aprobaste el quiz con ${assignment.score}% — Tu asistencia fue registrada.</div>
+            </div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    if (!assignment.questionsJson) return;
+
+    section.innerHTML = `
+      <div class="card" style="margin-bottom:1.5rem;border-left:4px solid var(--primary);">
+        <div class="card-body" style="display:flex;align-items:center;gap:1rem;justify-content:space-between;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <span style="font-size:1.5rem;">📝</span>
+            <div>
+              <div style="font-weight:600;">Recuperar asistencia</div>
+              <div style="color:var(--text-muted);font-size:.85rem;">
+                Realizá el quiz para recuperar tu asistencia a esta reunión.
+                ${assignment.attempts > 0 ? `Intentos: <strong>${assignment.attempts}</strong> | Último score: <strong>${assignment.score != null ? assignment.score + '%' : '—'}</strong>` : 'Necesitás 70% o más para aprobar.'}
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btnRecoverAttendance">📝 Rendir quiz</button>
+        </div>
+      </div>`;
+
+    document.getElementById('btnRecoverAttendance')?.addEventListener('click', () => {
+      openRecoveryQuizModal(assignment, container, meeting);
+    });
+  }
+
+  // ── Quiz modal (reutiliza lógica de tasks.js) ────────
+  function openRecoveryQuizModal(assignment, container, meeting) {
+    let questions;
+    try { questions = JSON.parse(assignment.questionsJson); } catch {
+      Toast.error('Error', 'No se pudieron cargar las preguntas'); return;
+    }
+
+    const formHtml = questions.map((q, qi) => `
+      <div style="margin-bottom:1.25rem;padding:1rem;background:var(--bg-secondary);border-radius:8px;">
+        <p style="font-weight:600;margin-bottom:.5rem;">${qi + 1}. ${escHtml(q.question)}</p>
+        ${q.options.map((opt, oi) => `
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:.3rem 0;font-size:.95rem;">
+            <input type="radio" name="quiz_${qi}" value="${oi}" style="width:16px;height:16px;" />
+            ${escHtml(opt)}
+          </label>
+        `).join('')}
+      </div>
+    `).join('');
+
+    Modal.open(`📝 Quiz — ${escHtml(assignment.taskTitle)}`, `
+      <div style="max-height:60vh;overflow-y:auto;padding-right:.5rem;">
+        <p style="color:var(--text-muted);margin-bottom:1rem;font-size:.9rem;">
+          Respondé todas las preguntas. Necesitás <strong>70% o más</strong> para aprobar y recuperar tu asistencia.
+          ${assignment.attempts > 0 ? `<br>Intentos anteriores: <strong>${assignment.attempts}</strong> | Último score: <strong>${assignment.score != null ? assignment.score + '%' : '—'}</strong>` : ''}
+        </p>
+        <form id="recoveryQuizForm">
+          ${formHtml}
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="submitRecoveryBtn">📩 Enviar respuestas</button>
+          </div>
+        </form>
+      </div>
+    `, { persistent: true });
+
+    document.getElementById('recoveryQuizForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitRecoveryBtn');
+
+      const answers = [];
+      for (let qi = 0; qi < questions.length; qi++) {
+        const sel = document.querySelector(`input[name="quiz_${qi}"]:checked`);
+        if (!sel) { Toast.warning('Completá todo', `Falta responder la pregunta ${qi + 1}`); return; }
+        answers.push(Number(sel.value));
+      }
+
+      btn.disabled = true; btn.textContent = 'Evaluando...';
+      try {
+        const result = await Api.post(`/task-assignments/${assignment.id}/submit`, { answers });
+        Modal.close();
+
+        if (result.status === 'APPROVED') {
+          Toast.success('🎉 ¡Quiz aprobado!', `Obtuviste ${result.score}% — Asistencia recuperada`);
+        } else {
+          Toast.warning('No aprobado', `Obtuviste ${result.score}%. Necesitás 70% o más. Podés reintentar.`);
+        }
+
+        // Refresh the detail page to update the recovery section
+        loadDetail(container, meeting.id);
+      } catch(err) {
+        Toast.error('Error', err.message);
+        btn.disabled = false; btn.textContent = '📩 Enviar respuestas';
+      }
+    });
   }
 
   function renderAttendancesTable(arr) {
@@ -144,12 +260,11 @@ const MeetingDetailPage = (() => {
     return `
       <div class="table-wrapper">
         <table>
-          <thead><tr><th>#</th><th>Usuario</th><th>Nombre</th><th>Apellido</th><th>Correo</th><th>Hora de registro</th></tr></thead>
+          <thead><tr><th>#</th><th>Nombre</th><th>Apellido</th><th>Correo</th><th>Hora de registro</th></tr></thead>
           <tbody>
             ${arr.map((a, i) => `
               <tr>
                 <td>${i + 1}</td>
-                <td><strong>${escHtml(a.username || a.user?.username || '—')}</strong></td>
                 <td>${escHtml(a.firstName || a.user?.firstName || '—')}</td>
                 <td>${escHtml(a.lastName  || a.user?.lastName  || '—')}</td>
                 <td>${escHtml(a.email || '—')}</td>
@@ -335,7 +450,7 @@ const MeetingDetailPage = (() => {
         await Api.post(`/attendances/meeting/${meeting.id}/self`, {
           nombre:              document.getElementById('adNombre').value.trim(),
           apellido:            document.getElementById('adApellido').value.trim(),
-          correoInstitucional: document.getElementById('adEmail').value.trim(),
+          correoInstitucional: document.getElementById('adEmail').value.toLowerCase().trim(),
         });
         Modal.close();
         Toast.success('\u2705 Asistencia registrada', meeting.title);

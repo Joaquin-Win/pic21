@@ -39,7 +39,7 @@ public class MeetingFileService {
     public List<MeetingFileResponse> uploadFiles(Long meetingId, List<MultipartFile> files, String uploaderUsername) {
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Reunión", meetingId));
-        User uploader = userRepository.findByUsername(uploaderUsername)
+        User uploader = userRepository.findByUsernameIgnoreCase(uploaderUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + uploaderUsername));
 
         if (files == null || files.isEmpty()) {

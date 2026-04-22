@@ -66,7 +66,7 @@ public class TaskService {
             throw new BusinessException("No se pueden crear tareas para una reunión NO_INICIADA.");
         }
 
-        User creator = userRepository.findByUsername(creatorUsername)
+        User creator = userRepository.findByUsernameIgnoreCase(creatorUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + creatorUsername));
 
         // IDs de quienes SÍ asistieron
@@ -120,7 +120,7 @@ public class TaskService {
     // ── Mis tareas asignadas (ESTUDIANTE / AYUDANTE) ───────
     @Transactional(readOnly = true)
     public List<TaskAssignmentResponse> findMyAssignments(String username) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + username));
         return assignmentRepository.findByAssignedToId(user.getId())
                 .stream().map(this::mapAssignment).collect(Collectors.toList());
@@ -129,7 +129,7 @@ public class TaskService {
     // ── Todas las tareas según rol ─────────────────────────
     @Transactional(readOnly = true)
     public List<TaskResponse> findAllByRole(String username) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + username));
 
         boolean isAdmin = user.getRoles().stream().anyMatch(r -> r.getName() == RoleName.ADMIN);
@@ -205,8 +205,8 @@ public class TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("Asignación", assignmentId));
 
         // Verify the assignment belongs to this user
-        User user = userRepository.findByUsername(username)
-                .or(() -> userRepository.findByEmail(username))
+        User user = userRepository.findByUsernameIgnoreCase(username)
+                .or(() -> userRepository.findByEmailIgnoreCase(username))
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + username));
         if (!assignment.getAssignedTo().getId().equals(user.getId())) {
             throw new BusinessException("Esta asignación no te pertenece.");
@@ -339,6 +339,8 @@ public class TaskService {
                 .id(a.getId())
                 .taskId(a.getTask().getId())
                 .taskTitle(a.getTask().getTitle())
+                .meetingId(a.getTask().getMeeting() != null ? a.getTask().getMeeting().getId() : null)
+                .meetingTitle(a.getTask().getMeeting() != null ? a.getTask().getMeeting().getTitle() : null)
                 .taskDescription(a.getTask().getDescription())
                 .userId(a.getAssignedTo().getId())
                 .username(a.getAssignedTo().getUsername())

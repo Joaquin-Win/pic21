@@ -57,6 +57,7 @@ const AuthService = (() => {
   function isProfesor(){ return hasRole('PROFESOR'); }
   function isAyudante(){ return hasRole('AYUDANTE'); }
   function isEstudiante(){ return hasRole('ESTUDIANTE'); }
+  function isEgresado()  { return hasRole('EGRESADO'); }
 
   function isStaff()   { return isAdmin() || isProfesor() || isAyudante(); }
 
@@ -66,6 +67,7 @@ const AuthService = (() => {
     if (user.roles.includes('ADMIN')) return 'ADMIN';
     if (user.roles.includes('PROFESOR')) return 'PROFESOR';
     if (user.roles.includes('AYUDANTE')) return 'AYUDANTE';
+    if (user.roles.includes('EGRESADO')) return 'EGRESADO';
     return 'ESTUDIANTE';
   }
 
@@ -79,7 +81,7 @@ const AuthService = (() => {
   return {
     login, logout, getToken, getUser,
     isAuthenticated, hasRole,
-    isAdmin, isProfesor, isAyudante, isEstudiante, isStaff,
+    isAdmin, isProfesor, isAyudante, isEstudiante, isEgresado, isStaff,
     getPrimaryRole, getDisplayName,
   };
 })();

@@ -53,16 +53,14 @@ const UsersPage = (() => {
           <div class="table-wrapper">
             <table>
               <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Usuario</th>
-                  <th>Nombre</th>
-                  <th>Email</th>
-                  <th>Contraseña (Hash)</th>
-                  <th>Roles</th>
-                  <th>Estado</th>
-                  <th style="text-align:center">Acciones</th>
-                </tr>
+              <tr>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Roles</th>
+                <th>Estado</th>
+                <th style="text-align:center">Acciones</th>
+              </tr>
               </thead>
               <tbody>
                 ${allUsers.map((u, i) => userRow(u, i + 1, me?.username)).join('')}
@@ -92,14 +90,13 @@ const UsersPage = (() => {
     const statusBadgeHtml = u.enabled
       ? `<span class="badge badge-active">Activo</span>`
       : `<span class="badge badge-inactive">Inactivo</span>`;
+    const fullName = `${escHtml(u.firstName || '')} ${escHtml(u.lastName || '')}`.trim() || '—';
 
     return `
       <tr>
         <td>${idx}</td>
-        <td><strong>${escHtml(u.username)}</strong>${isSelf ? ' <span style="color:var(--text-muted);font-size:0.75rem">(vos)</span>' : ''}</td>
-        <td>${escHtml(u.firstName || '')} ${escHtml(u.lastName || '')}</td>
+        <td><strong>${fullName}</strong>${isSelf ? ' <span style="color:var(--text-muted);font-size:0.75rem">(vos)</span>' : ''}</td>
         <td style="font-size:0.85rem">${escHtml(u.email || '—')}</td>
-        <td style="font-size:0.7rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted)" title="${escHtml(u.passwordHash || '')}">${escHtml(u.passwordHash ? u.passwordHash.substring(0, 20) + '...' : '—')}</td>
         <td>${roleBadges || '—'}</td>
         <td>${statusBadgeHtml}</td>
         <td style="text-align:center;white-space:nowrap;display:flex;gap:.25rem;justify-content:center;flex-wrap:wrap">
