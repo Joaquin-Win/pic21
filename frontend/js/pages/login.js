@@ -213,8 +213,12 @@ const LoginPage = (() => {
             <small style="color:#888;font-size:.78rem;">Debe incluir: 1 mayúscula, 1 número y 1 símbolo (@#$!. etc)</small>
           </div>
           <div class="form-group">
-            <label class="form-label">Repetir contraseña *</label>
-            <input class="form-control" id="regPassword2" type="password" placeholder="Volvé a escribir la misma contraseña" required minlength="6" autocomplete="new-password" />
+            <label class="form-label">Tipo de usuario *</label>
+            <select class="form-control" id="regTipoUsuario" required>
+              <option value="">Seleccioná...</option>
+              <option value="Estudiante">Estudiante</option>
+              <option value="Egresado">Egresado</option>
+            </select>
           </div>
 
           <!-- Egresado / Profesor: elegir solo uno -->
