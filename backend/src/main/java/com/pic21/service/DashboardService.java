@@ -1,12 +1,12 @@
 package com.pic21.service;
 
-import com.pic21.domain.Meeting;
-import com.pic21.domain.Role.RoleName;
+import com.pic21.domain.Rol;
+import com.pic21.domain.Reunion;
 import com.pic21.dto.response.DashboardResponse;
 import com.pic21.dto.response.DashboardResponse.MeetingStats;
-import com.pic21.repository.AttendanceRepository;
-import com.pic21.repository.MeetingRepository;
-import com.pic21.repository.UserRepository;
+import com.pic21.repository.AsistenciaRepository;
+import com.pic21.repository.ReunionRepository;
+import com.pic21.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,55 +17,41 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Servicio del dashboard de estadísticas PIC21.
- *
- * Calcula:
- *   - Total de reuniones
- *   - Total de asistencias registradas
- *   - Porcentaje global de asistencia
- *   - Desglose por reunión (total asistentes, % de asistencia vs. total estudiantes)
+ * Servicio del dashboard de estadísticas PIC21 (UML v8).
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class DashboardService {
 
-    private final MeetingRepository meetingRepository;
-    private final AttendanceRepository attendanceRepository;
-    private final UserRepository userRepository;
+    private final ReunionRepository reunionRepository;
+    private final AsistenciaRepository asistenciaRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    /**
-     * Retorna las estadísticas del dashboard.
-     * Acceso: ADMIN, PROFESOR, AYUDANTE.
-     */
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR','AYUDANTE')")
+    @PreAuthorize("hasAnyRole('R04_ADMIN','R05_DIRECTOR')")
     public DashboardResponse getDashboard() {
-        // Total de estudiantes y egresados registrados en el sistema
-        long totalStudents = userRepository.findAll().stream()
-                .filter(u -> u.getRoles().stream()
-                        .anyMatch(r -> r.getName() == RoleName.ESTUDIANTE || r.getName() == RoleName.EGRESADO))
+        // Total de usuarios con roles estudiantiles
+        long totalStudents = usuarioRepository.findAll().stream()
+                .filter(u -> u.getRoles().contains(Rol.R02_ESTUDIANTE)
+                        || u.getRoles().contains(Rol.R03_EGRESADO)
+                        || u.getRoles().contains(Rol.R06_AYUDANTE))
                 .count();
 
-        // Total de reuniones
-        long totalMeetings = meetingRepository.count();
+        long totalMeetings   = reunionRepository.count();
+        long totalAttendances = asistenciaRepository.count();
 
-        // Total de asistencias
-        long totalAttendances = attendanceRepository.count();
-
-        // Stats por reunión
-        List<Meeting> meetings = meetingRepository.findAll();
-        List<MeetingStats> meetingStatsList = meetings.stream()
-                .map(meeting -> {
-                    int attended = attendanceRepository.findByMeetingWithDetails(meeting).size();
+        List<Reunion> reuniones = reunionRepository.findAll();
+        List<MeetingStats> meetingStatsList = reuniones.stream()
+                .map(reunion -> {
+                    int attended = asistenciaRepository.findByReunionWithDetails(reunion).size();
                     double percentage = totalStudents > 0
                             ? Math.round((attended * 100.0 / totalStudents) * 10.0) / 10.0
                             : 0.0;
-
                     return MeetingStats.builder()
-                            .meetingId(meeting.getId())
-                            .meetingTitle(meeting.getTitle())
-                            .meetingStatus(meeting.getStatus().name())
+                            .meetingId(reunion.getId())
+                            .meetingTitle(reunion.getTitulo())
+                            .meetingStatus(reunion.getEstado().name())
                             .totalAttendances(attended)
                             .totalStudents((int) totalStudents)
                             .attendancePercentage(percentage)
@@ -73,18 +59,15 @@ public class DashboardService {
                 })
                 .collect(Collectors.toList());
 
-        // Porcentaje global (promedio de porcentajes por reunión)
         double globalRate = 0.0;
         if (totalMeetings > 0 && totalStudents > 0) {
             globalRate = meetingStatsList.stream()
                     .mapToDouble(MeetingStats::getAttendancePercentage)
-                    .average()
-                    .orElse(0.0);
+                    .average().orElse(0.0);
             globalRate = Math.round(globalRate * 10.0) / 10.0;
         }
 
-        log.debug("Dashboard calculado: {} reuniones, {} asistencias totales, {}% global",
-                totalMeetings, totalAttendances, globalRate);
+        log.debug("Dashboard: {} reuniones, {} asistencias, {}% global", totalMeetings, totalAttendances, globalRate);
 
         return DashboardResponse.builder()
                 .totalMeetings(totalMeetings)

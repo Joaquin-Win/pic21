@@ -64,19 +64,24 @@ function formatDateShort(iso) {
 /* ── Status helpers ────────────────────────────────── */
 function statusBadge(status) {
   const map = {
+    // EstadoReunion (UML v8)
     NO_INICIADA: { cls: 'badge-inactive', label: 'No iniciada' },
-    ACTIVA:      { cls: 'badge-active',   label: 'Activa'      },
+    EN_CURSO:    { cls: 'badge-active',   label: 'En curso'    },
     BLOQUEADA:   { cls: 'badge-blocked',  label: 'Bloqueada'   },
+    // EstadoTarea (UML v8)
+    PENDIENTE:   { cls: 'badge-pending',  label: 'Pendiente'   },
+    COMPLETADA:  { cls: 'badge-done',     label: 'Completada'  },
+    APROBADA:    { cls: 'badge-done',     label: 'Aprobado ✅' },
+    // Legacy (retrocompatibilidad)
+    ACTIVA:      { cls: 'badge-active',   label: 'Activa'      },
     PENDING:     { cls: 'badge-pending',  label: 'Pendiente'   },
     COMPLETED:   { cls: 'badge-done',     label: 'Completada'  },
-    CORRECTED:   { cls: 'badge-active',   label: 'Corregida'   },
     APPROVED:    { cls: 'badge-done',     label: 'Aprobado ✅' },
-    // Legacy (backward compat)
     IN_PROGRESS: { cls: 'badge-pending',  label: 'En progreso' },
     DONE:        { cls: 'badge-done',     label: 'Completada'  },
     CANCELLED:   { cls: 'badge-inactive', label: 'Cancelada'   },
   };
-  const s = map[status] || { cls: 'badge-inactive', label: status };
+  const s = map[status] || { cls: 'badge-inactive', label: status ?? '—' };
   return `<span class="badge ${s.cls}">${s.label}</span>`;
 }
 

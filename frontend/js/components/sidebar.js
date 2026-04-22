@@ -1,29 +1,37 @@
 /* ═══════════════════════════════════════════════════════
-   PIC21 — Sidebar Component
+   PIC21 — Sidebar Component (UML v8)
 ═══════════════════════════════════════════════════════ */
 
 const Sidebar = (() => {
   let built = false;
 
+  // Roles UML v8
+  const ALL_ROLES = ['R04_ADMIN','R01_PROFESOR','R05_DIRECTOR','R06_AYUDANTE','R02_ESTUDIANTE','R03_EGRESADO'];
+
   const allNavItems = [
     {
       section: 'Principal',
       items: [
-        { label: 'Dashboard', href: '/dashboard', icon: '📊', roles: ['ADMIN','PROFESOR','AYUDANTE'] },
+        {
+          label: 'Dashboard',
+          href: '/dashboard',
+          icon: '📊',
+          roles: ['R04_ADMIN','R05_DIRECTOR']
+        },
       ]
     },
     {
       section: 'Gestión',
       items: [
-        { label: 'Reuniones',             href: '/meetings', icon: '📅', roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE','EGRESADO'] },
-        { label: 'Recuperar asistencia', href: '/tasks',    icon: '📋', roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE','EGRESADO'] },
+        { label: 'Reuniones',             href: '/meetings', icon: '📅', roles: ALL_ROLES },
+        { label: 'Recuperar asistencia',  href: '/tasks',    icon: '📋', roles: ALL_ROLES },
       ]
     },
     {
       section: 'Administración',
       items: [
-        { label: 'Usuarios', href: '/users', icon: '👥', roles: ['ADMIN'] },
-        { label: 'Archivos', href: '/files', icon: '📁', roles: ['ADMIN'] },
+        { label: 'Usuarios', href: '/users', icon: '👥', roles: ['R04_ADMIN'] },
+        { label: 'Archivos', href: '/files', icon: '📁', roles: ['R04_ADMIN'] },
       ]
     },
   ];
@@ -32,11 +40,10 @@ const Sidebar = (() => {
     if (built) return;
     built = true;
 
-    // Nav
     const nav = document.getElementById('sidebarNav');
     if (!nav) return;
 
-    const user = AuthService.getUser();
+    const user  = AuthService.getUser();
     const roles = user?.roles || [];
 
     let html = '';
@@ -64,7 +71,7 @@ const Sidebar = (() => {
         <div class="user-avatar">${initials}</div>
         <div>
           <div class="user-name">${escHtml(AuthService.getDisplayName())}</div>
-          <div class="user-role">${escHtml(AuthService.getPrimaryRole())}</div>
+          <div class="user-role">${escHtml(AuthService.getDisplayRole())}</div>
         </div>
       `;
     }
@@ -75,14 +82,13 @@ const Sidebar = (() => {
     });
 
     // Collapse toggle
-    const toggle = document.getElementById('sidebarToggle');
+    const toggle  = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('sidebar');
     toggle?.addEventListener('click', () => {
       sidebar?.classList.toggle('collapsed');
       localStorage.setItem('pic21_sidebar_collapsed', sidebar?.classList.contains('collapsed') ? '1' : '0');
     });
 
-    // Restore collapsed state
     if (localStorage.getItem('pic21_sidebar_collapsed') === '1') {
       sidebar?.classList.add('collapsed');
     }
@@ -94,15 +100,26 @@ const Sidebar = (() => {
       overlay = document.createElement('div');
       overlay.id = 'sidebarOverlay';
       overlay.className = 'sidebar-overlay';
-      document.body.appendChild(overlay);
+      sidebar.parentNode.insertBefore(overlay, sidebar.nextSibling);
     }
     hamburger?.addEventListener('click', () => {
-      sidebar?.classList.add('mobile-open');
-      overlay.classList.add('show');
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        sidebar?.classList.remove('collapsed');
+        sidebar?.classList.add('mobile-open');
+        overlay.classList.add('show');
+      } else {
+        sidebar?.classList.remove('collapsed');
+        localStorage.setItem('pic21_sidebar_collapsed', '0');
+      }
     });
-    overlay.addEventListener('click', () => {
+    const closeMobileSidebar = () => {
       sidebar?.classList.remove('mobile-open');
       overlay.classList.remove('show');
+    };
+    overlay.addEventListener('click', closeMobileSidebar);
+    nav.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', closeMobileSidebar);
     });
   }
 

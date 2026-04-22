@@ -1,37 +1,37 @@
 package com.pic21.dto.response;
 
-import com.pic21.domain.MeetingStatus;
+import com.pic21.domain.EstadoReunion;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
-/**
- * Respuesta pública de una reunión (nunca expone la entidad JPA directamente).
- */
 @Getter
 @Builder
 public class MeetingResponse {
 
     private Long id;
-    private String title;
-    private String description;
-    private LocalDateTime scheduledAt;
-    private MeetingStatus status;
+    private String titulo;
+    private String descripcion;
+    private LocalDateTime fechaInicio;
+    private EstadoReunion estado;
 
-    /**
-     * Sólo se expone el accessCode al usuario si la reunión está ACTIVA.
-     * La lógica de ocultamiento está en el MeetingService.
-     */
     private String accessCode;
-
     private String recordingLink;
+    private String presentacionLink;
     private String newsLink;
     private String activityLink;
+
+    /** Links adicionales */
+    private List<String> linksExtra;
+
+    /** Links de noticias adicionales */
+    private List<String> newsLinksExtra;
 
     private String pdfFileName;
     private boolean hasPdfFile;
 
-    private String createdBy;     // username del creador
+    private String creadoPorUsername;
     private LocalDateTime createdAt;
 }

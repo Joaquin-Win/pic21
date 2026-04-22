@@ -1,7 +1,6 @@
 package com.pic21.service;
 
-import com.pic21.domain.Role;
-import com.pic21.domain.User;
+import com.pic21.domain.*;
 import com.pic21.dto.request.UpdateUserRequest;
 import com.pic21.dto.response.UserResponse;
 import com.pic21.exception.BusinessException;
@@ -12,191 +11,145 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Servicio de gestión de usuarios (solo accesible para ADMIN).
+ * Servicio de gestión de usuarios (UML v8).
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final TaskAssignmentRepository taskAssignmentRepository;
-    private final AttendanceRepository attendanceRepository;
-
-    // -----------------------------------------------------------------------
-    // Listar todos los usuarios
-    // -----------------------------------------------------------------------
+    private final UsuarioRepository usuarioRepository;
+    private final AsignacionTareaRepository asignacionTareaRepository;
+    private final AsistenciaRepository asistenciaRepository;
+    private final AuthService authService;
 
     @Transactional(readOnly = true)
     public List<UserResponse> findAll() {
-        return userRepository.findAll()
+        return usuarioRepository.findAll()
                 .stream()
-                .map(this::mapToResponse)
+                .map(authService::mapToUserResponse)
                 .collect(Collectors.toList());
     }
 
-    // -----------------------------------------------------------------------
-    // Obtener un usuario por ID
-    // -----------------------------------------------------------------------
-
     @Transactional(readOnly = true)
     public UserResponse findById(Long id) {
-        return mapToResponse(findUserOrThrow(id));
+        return authService.mapToUserResponse(findOrThrow(id));
     }
-
-    // -----------------------------------------------------------------------
-    // Actualizar roles de un usuario
-    // -----------------------------------------------------------------------
 
     @Transactional
     public UserResponse updateRoles(Long id, List<String> roleNames, String adminUsername) {
-        User user = findUserOrThrow(id);
+        Usuario usuario = findOrThrow(id);
 
-        if (user.getUsername().equals(adminUsername)) {
+        if (usuario.getUsername().equals(adminUsername)) {
             throw new BusinessException("No podés modificar tus propios roles.");
         }
 
-        Set<Role> newRoles = roleNames.stream()
+        Set<Rol> newRoles = roleNames.stream()
                 .map(rn -> {
                     try {
-                        Role.RoleName roleName = Role.RoleName.valueOf(rn.toUpperCase());
-                        return roleRepository.findByName(roleName)
-                                .orElseThrow(() -> new BusinessException("Rol inválido: " + rn));
+                        return Rol.valueOf(rn.toUpperCase());
                     } catch (IllegalArgumentException e) {
-                        throw new BusinessException("Rol inválido: " + rn + ". Roles válidos: ADMIN, PROFESOR, AYUDANTE, ESTUDIANTE, EGRESADO.");
+                        throw new BusinessException("Rol inválido: " + rn +
+                                ". Válidos: R01_PROFESOR, R02_ESTUDIANTE, R03_EGRESADO, R04_ADMIN, R05_DIRECTOR, R06_AYUDANTE");
                     }
                 })
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(() -> EnumSet.noneOf(Rol.class)));
 
         if (newRoles.isEmpty()) {
             throw new BusinessException("El usuario debe tener al menos un rol.");
         }
 
-        user.setRoles(newRoles);
-        log.info("Roles actualizados para usuario '{}': {}", user.getUsername(), roleNames);
-        return mapToResponse(userRepository.save(user));
+        usuario.setRoles(newRoles);
+        log.info("Roles actualizados para '{}': {}", usuario.getUsername(), roleNames);
+        return authService.mapToUserResponse(usuarioRepository.save(usuario));
     }
-
-    // -----------------------------------------------------------------------
-    // Editar perfil (nombre, apellido, email, username)
-    // -----------------------------------------------------------------------
 
     @Transactional
     public UserResponse updateProfile(Long id, UpdateUserRequest request, String adminUsername) {
-        User user = findUserOrThrow(id);
-
-        // Validar unicidad de email si cambió
-        if (!user.getEmail().equalsIgnoreCase(request.getEmail())) {
-            userRepository.findByEmailIgnoreCase(request.getEmail()).ifPresent(existing -> {
-                if (!existing.getId().equals(id)) {
-                    throw new BusinessException("El email ya está en uso por otro usuario.");
-                }
-            });
-        }
+        Usuario usuario = findOrThrow(id);
 
         // Validar unicidad de username si cambió
-        if (!user.getUsername().equalsIgnoreCase(request.getUsername())) {
-            userRepository.findByUsernameIgnoreCase(request.getUsername()).ifPresent(existing -> {
+        if (!usuario.getUsername().equalsIgnoreCase(request.getUsername())) {
+            usuarioRepository.findByUsernameIgnoreCase(request.getUsername()).ifPresent(existing -> {
                 if (!existing.getId().equals(id)) {
-                    throw new BusinessException("El nombre de usuario ya existe.");
+                    throw new BusinessException("El username ya existe.");
                 }
             });
         }
 
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
-        user.setUsername(request.getUsername());
+        usuario.setUsername(request.getUsername());
+        usuario.setNombre(request.getNombre());
+        usuario.setApellido(request.getApellido());
 
-        log.info("Perfil del usuario id={} actualizado por '{}'", id, adminUsername);
-        return mapToResponse(userRepository.save(user));
+        // Actualizar PerfilPersonal si aplica
+        if (usuario.esGrupoA()) {
+            PerfilPersonal pp = usuario.getPerfilPersonal() != null
+                    ? usuario.getPerfilPersonal()
+                    : new PerfilPersonal();
+            pp.setDni(request.getDni());
+            pp.setCorreo(request.getCorreo());
+            usuario.setPerfilPersonal(pp);
+        }
+
+        // Actualizar PerfilEstudiantil si aplica
+        if (usuario.esGrupoB()) {
+            PerfilEstudiantil pe = usuario.getPerfilEstudiantil() != null
+                    ? usuario.getPerfilEstudiantil()
+                    : new PerfilEstudiantil();
+            pe.setCorreoInstitucional(request.getCorreoInstitucional());
+            pe.setLegajo(request.getLegajo());
+            pe.setCarrera(request.getCarrera());
+            usuario.setPerfilEstudiantil(pe);
+        }
+
+        log.info("Perfil id={} actualizado por '{}'", id, adminUsername);
+        return authService.mapToUserResponse(usuarioRepository.save(usuario));
     }
-
-    // -----------------------------------------------------------------------
-    // Eliminar usuario (con limpieza de FK)
-    // -----------------------------------------------------------------------
 
     @Transactional
     public void delete(Long id, String adminUsername) {
-        User user = findUserOrThrow(id);
+        Usuario usuario = findOrThrow(id);
 
-        if (user.getUsername().equals(adminUsername)) {
+        if (usuario.getUsername().equals(adminUsername)) {
             throw new BusinessException("No podés eliminar tu propia cuenta.");
         }
 
         try {
-            // 1. Eliminar task_assignments del usuario
-            taskAssignmentRepository.deleteByAssignedToUserId(id);
-            log.debug("Asignaciones de tareas eliminadas para usuario id={}", id);
-
-            // 2. Eliminar attendances del usuario
-            attendanceRepository.deleteByUserId(id);
-            log.debug("Asistencias eliminadas para usuario id={}", id);
-
-            // 3. Desasociar tareas legacyAssignedTo (set NULL)
-            userRepository.flush();
-
-            // 4. Eliminar el usuario (roles se borran via JoinTable cascade)
-            userRepository.delete(user);
-            userRepository.flush();
-
-            log.info("Usuario '{}' (id={}) eliminado por '{}'", user.getUsername(), id, adminUsername);
+            asignacionTareaRepository.deleteByUsuarioId(id);
+            asistenciaRepository.deleteByUsuarioId(id);
+            usuarioRepository.flush();
+            usuarioRepository.delete(usuario);
+            usuarioRepository.flush();
+            log.info("Usuario '{}' (id={}) eliminado por '{}'", usuario.getUsername(), id, adminUsername);
         } catch (org.springframework.dao.DataIntegrityViolationException ex) {
-            log.error("Error de FK al eliminar usuario id={}: {}", id, ex.getMessage());
+            log.error("FK error al eliminar usuario id={}: {}", id, ex.getMessage());
             throw new BusinessException(
-                    "No se puede eliminar este usuario porque tiene datos asociados (reuniones, tareas creadas, etc.). "
-                  + "Deshabilitá el usuario en su lugar.");
+                    "No se puede eliminar: tiene datos asociados (reuniones, tareas creadas). Deshabilitá en su lugar.");
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Habilitar / deshabilitar usuario
-    // -----------------------------------------------------------------------
-
     @Transactional
-    public UserResponse toggleEnabled(Long id, String adminUsername) {
-        User user = findUserOrThrow(id);
+    public UserResponse toggleActivo(Long id, String adminUsername) {
+        Usuario usuario = findOrThrow(id);
 
-        if (user.getUsername().equals(adminUsername)) {
+        if (usuario.getUsername().equals(adminUsername)) {
             throw new BusinessException("No podés deshabilitar tu propia cuenta.");
         }
 
-        user.setEnabled(!user.isEnabled());
+        usuario.setActivo(!usuario.isActivo());
         log.info("Usuario '{}' {} por '{}'",
-                user.getUsername(), user.isEnabled() ? "habilitado" : "deshabilitado", adminUsername);
-        return mapToResponse(userRepository.save(user));
+                usuario.getUsername(), usuario.isActivo() ? "activado" : "desactivado", adminUsername);
+        return authService.mapToUserResponse(usuarioRepository.save(usuario));
     }
 
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
-
-    private User findUserOrThrow(Long id) {
-        return userRepository.findById(id)
+    private Usuario findOrThrow(Long id) {
+        return usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario", id));
     }
-
-    private UserResponse mapToResponse(User u) {
-        return UserResponse.builder()
-                .id(u.getId())
-                .username(u.getUsername())
-                .email(u.getEmail())
-                .firstName(u.getFirstName())
-                .lastName(u.getLastName())
-                .enabled(u.isEnabled())
-                .passwordHash(u.getPassword())
-                .createdAt(u.getCreatedAt())
-                .roles(u.getRoles().stream()
-                        .map(r -> r.getName().name())
-                        .sorted()
-                        .collect(Collectors.toList()))
-                .build();
-    }
 }
-

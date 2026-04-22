@@ -1,35 +1,33 @@
 /* ═══════════════════════════════════════════════════════
-   PIC21 — Client-side Router with role guards
+   PIC21 — Client-side Router with role guards (UML v8)
 ═══════════════════════════════════════════════════════ */
 
 const Router = (() => {
-  // Route definitions — resolved LAZILY at call time (pages loaded in later scripts)
+  // Roles UML v8 completos para rutas que admiten todos
+  const ALL_ROLES = ['R04_ADMIN','R01_PROFESOR','R05_DIRECTOR','R06_AYUDANTE','R02_ESTUDIANTE','R03_EGRESADO'];
+
   function getRoutes() {
     /* eslint-disable no-undef */
     return {
-      '/login':        { page: LoginPage,         title: 'Iniciar sesión',     public: true  },
-      '/dashboard':    { page: DashboardPage,     title: 'Dashboard',          roles: ['ADMIN','PROFESOR','AYUDANTE'] },
-      '/meetings':     { page: MeetingsPage,      title: 'Reuniones',              roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE','EGRESADO'] },
-      '/meetings/:id': { page: MeetingDetailPage, title: 'Detalle de reunión',     roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE','EGRESADO'] },
-      '/tasks':        { page: TasksPage,         title: 'Recuperar asistencia',   roles: ['ADMIN','PROFESOR','AYUDANTE','ESTUDIANTE','EGRESADO'] },
-      '/users':        { page: UsersPage,         title: 'Usuarios',           roles: ['ADMIN'] },
-      '/files':        { page: FilesPage,         title: 'Archivos',           roles: ['ADMIN'] },
+      '/login':        { page: LoginPage,         title: 'Iniciar sesión',      public: true  },
+      '/dashboard':    { page: DashboardPage,     title: 'Dashboard',           roles: ['R04_ADMIN','R05_DIRECTOR'] },
+      '/meetings':     { page: MeetingsPage,      title: 'Reuniones',           roles: ALL_ROLES },
+      '/meetings/:id': { page: MeetingDetailPage, title: 'Detalle de reunión',  roles: ALL_ROLES },
+      '/tasks':        { page: TasksPage,         title: 'Recuperar asistencia',roles: ALL_ROLES },
+      '/users':        { page: UsersPage,         title: 'Usuarios',            roles: ['R04_ADMIN'] },
+      '/files':        { page: FilesPage,         title: 'Archivos',            roles: ['R04_ADMIN'] },
     };
   }
 
   let currentPath = null;
 
-  // ── Navigate ─────────────────────────────────────────
   function navigate(path, params = {}) {
-    // Clean hash
     const clean = path.startsWith('/') ? path : '/' + path;
     window.history.pushState({ path: clean, params }, '', '#' + clean);
     render(clean, params);
   }
 
-  // ── Render ────────────────────────────────────────────
   function render(path, params = {}) {
-    // Find matching route (support :id params)
     const routes = getRoutes();
     let route = null;
     let routeParams = { ...params };
@@ -38,26 +36,14 @@ const Router = (() => {
       if (match) { route = def; Object.assign(routeParams, match); break; }
     }
 
-    if (!route) {
-      // Redirect unknown to appropriate default
-      redirectDefault();
-      return;
-    }
+    if (!route) { redirectDefault(); return; }
 
-    // Auth guard
     if (!route.public) {
-      if (!AuthService.isAuthenticated()) {
-        navigate('/login');
-        return;
-      }
-      // Role guard
+      if (!AuthService.isAuthenticated()) { navigate('/login'); return; }
       if (route.roles?.length) {
         const user = AuthService.getUser();
         const allowed = route.roles.some(r => user?.roles?.includes(r));
-        if (!allowed) {
-          navigate(getDefaultRoute());
-          return;
-        }
+        if (!allowed) { navigate(getDefaultRoute()); return; }
       }
     } else if (AuthService.isAuthenticated() && path === '/login') {
       navigate(getDefaultRoute());
@@ -69,19 +55,13 @@ const Router = (() => {
     updatePageTitle(route.title);
     updateActiveNav(path);
 
-    const content = document.getElementById('page-content');
+    const content    = document.getElementById('page-content');
     const authScreen = document.getElementById('auth-screen');
 
     if (route.public) {
-      if (authScreen) {
-        authScreen.classList.remove('hidden');
-        route.page.render(authScreen, routeParams);
-      }
+      if (authScreen) { authScreen.classList.remove('hidden'); route.page.render(authScreen, routeParams); }
     } else {
-      if (content) {
-        showLoading(content);
-        route.page.render(content, routeParams);
-      }
+      if (content) { showLoading(content); route.page.render(content, routeParams); }
     }
   }
 
@@ -109,14 +89,13 @@ const Router = (() => {
     } else {
       shell?.classList.remove('hidden');
       authScreen?.classList.add('hidden');
-      // Ensure sidebar/topbar are built
       Sidebar.build();
       Topbar.build();
     }
   }
 
   function getDefaultRoute() {
-    if (AuthService.isAdmin() || AuthService.isStaff()) return '/dashboard';
+    if (AuthService.isAdmin() || AuthService.isDirector()) return '/dashboard';
     return '/meetings';
   }
 
@@ -125,7 +104,6 @@ const Router = (() => {
     navigate(getDefaultRoute());
   }
 
-  // ── Page title in topbar ─────────────────────────────
   function updatePageTitle(title) {
     setText('#pageTitle', title);
     document.title = `${title} — PIC21`;
@@ -139,21 +117,15 @@ const Router = (() => {
     });
   }
 
-  // ── Init: handle back/forward + initial load ─────────
   function init() {
     window.addEventListener('popstate', (e) => {
       const path = e.state?.path || getHashPath();
       render(path, e.state?.params || {});
     });
-    // Handle clicks on [data-href]
     document.addEventListener('click', (e) => {
       const link = e.target.closest('[data-href]');
-      if (link) {
-        e.preventDefault();
-        navigate(link.dataset.href);
-      }
+      if (link) { e.preventDefault(); navigate(link.dataset.href); }
     });
-    // Initial render
     const path = getHashPath();
     render(path || (AuthService.isAuthenticated() ? getDefaultRoute() : '/login'));
   }

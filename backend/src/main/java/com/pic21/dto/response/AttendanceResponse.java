@@ -6,7 +6,7 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 
 /**
- * Respuesta con los datos de una asistencia registrada.
+ * Respuesta con los datos de una asistencia registrada (UML v8).
  */
 @Getter
 @Builder
@@ -14,19 +14,15 @@ public class AttendanceResponse {
 
     private Long id;
 
-    private Long meetingId;
-    private String meetingTitle;
+    private Long reunionId;
+    private String reunionTitulo;
 
-    private Long userId;
+    private Long usuarioId;
     private String username;
-    private String firstName;
-    private String lastName;
+    private String nombre;
+    private String apellido;
     private String email;
 
-    private String legajo;
-    private String carrera;
-    private String tipoUsuario;
-
-    private LocalDateTime registeredAt;
+    private boolean presente;
+    private LocalDateTime fechaRegistro;
 }
-

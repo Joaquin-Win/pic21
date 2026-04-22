@@ -12,12 +12,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.pic21.exception.BusinessException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
- * Controlador de autenticación.
- * <ul>
- *   <li>POST /api/auth/login      → público</li>
- *   <li>POST /api/auth/register   → solo ADMIN</li>
- * </ul>
+ * Controlador de autenticación (UML v8).
+ *   POST /api/auth/login           → público
+ *   POST /api/auth/register        → solo R04_ADMIN
+ *   POST /api/auth/register-public → público (R02_ESTUDIANTE o R03_EGRESADO)
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -26,37 +30,39 @@ public class AuthController {
 
     private final AuthService authService;
 
-    /**
-     * Login de usuario. Devuelve un JWT si las credenciales son correctas.
-     *
-     * @param request { username, password }
-     * @return { token, type, id, username, email, roles }
-     */
+    private final Map<String, AtomicInteger> loginAttempts = new ConcurrentHashMap<>();
+
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+        String key = request.getUsername();
+        AtomicInteger attempts = loginAttempts.computeIfAbsent(key, k -> new AtomicInteger(0));
+        if (attempts.get() >= 5) {
+            throw new BusinessException("Demasiados intentos de login. Esperá unos minutos antes de reintentar.");
+        }
+        try {
+            AuthResponse response = authService.login(request);
+            loginAttempts.remove(key);
+            return ResponseEntity.ok(response);
+        } catch (Exception ex) {
+            attempts.incrementAndGet();
+            throw ex;
+        }
     }
 
-    /**
-     * Registro de un nuevo usuario. Requiere rol ADMIN.
-     *
-     * @param request { username, email, password, firstName, lastName, role }
-     * @return datos del usuario creado (201 Created)
-     */
     @PostMapping("/register")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('R04_ADMIN')")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(authService.register(request));
     }
 
     /**
-     * Registro público — cualquier persona puede crear su cuenta.
-     * El rol se fuerza a ESTUDIANTE (se ignora lo que mande el request).
+     * Registro público: el rol lo determina el cliente
+     * (R02_ESTUDIANTE, R03_EGRESADO o R01_PROFESOR según el formulario).
+     * Si no se especifica rol, se asigna R02_ESTUDIANTE por defecto.
      */
     @PostMapping("/register-public")
     public ResponseEntity<UserResponse> registerPublic(@Valid @RequestBody RegisterRequest request) {
-        request.setRole(null); // fuerza ESTUDIANTE por defecto
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(authService.register(request));
     }

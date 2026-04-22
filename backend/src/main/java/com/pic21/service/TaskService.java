@@ -1,22 +1,20 @@
 package com.pic21.service;
 
 import com.pic21.domain.*;
-import com.pic21.domain.Role.RoleName;
 import com.pic21.dto.request.TaskRequest;
 import com.pic21.dto.response.TaskAssignmentResponse;
 import com.pic21.dto.response.TaskResponse;
 import com.pic21.exception.BusinessException;
 import com.pic21.exception.ResourceNotFoundException;
-import com.pic21.repository.AttendanceRepository;
-import com.pic21.repository.MeetingRepository;
-import com.pic21.repository.TaskAssignmentRepository;
-import com.pic21.repository.TaskRepository;
-import com.pic21.repository.UserRepository;
+import com.pic21.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -24,85 +22,85 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Servicio de gestión de tareas — PIC21.
+ * Servicio de tareas (UML v8).
  *
- * Modelo:
- *   Task          → tarea general (title, description, meeting, createdBy)
- *   TaskAssignment → asignación individual por usuario (task + user + status)
- *
- * Roles:
- *   ADMIN    → ve todas las tareas + edita/elimina/cambia estado de asignaciones
- *   PROFESOR → crea tareas y ve las propias
- *   AYUDANTE → ve sus asignaciones (como ESTUDIANTE); NO puede crear
- *   ESTUDIANTE → ve sus asignaciones
- *
- * Al crear una tarea para una reunión:
- *   → Se crea UN solo Task
- *   → Se crean N TaskAssignment (uno por ESTUDIANTE y AYUDANTE que no asistió)
+ * Tarea tiene composición 1:1 con Reunion (@MapsId).
+ * AsignacionTarea es N:1 con Tarea y N:1 con Usuario.
+ * EstadoTarea: PENDIENTE, COMPLETADA, BLOQUEADA.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TaskService {
+    private static final com.fasterxml.jackson.databind.ObjectMapper MAPPER = new com.fasterxml.jackson.databind.ObjectMapper();
 
-    private final TaskRepository           taskRepository;
-    private final TaskAssignmentRepository assignmentRepository;
-    private final MeetingRepository        meetingRepository;
-    private final UserRepository           userRepository;
-    private final AttendanceRepository     attendanceRepository;
-    private final jakarta.persistence.EntityManager entityManager;
+    private final TareaRepository tareaRepository;
+    private final AsignacionTareaRepository asignacionTareaRepository;
+    private final ReunionRepository reunionRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final AsistenciaRepository asistenciaRepository;
 
-    private static final Set<RoleName> ASSIGNABLE_ROLES = new HashSet<>(Arrays.asList(
-            RoleName.ESTUDIANTE, RoleName.AYUDANTE, RoleName.EGRESADO
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    // Roles que pueden recibir asignaciones
+    private static final Set<Rol> ASSIGNABLE_ROLES = new HashSet<>(Arrays.asList(
+            Rol.R02_ESTUDIANTE, Rol.R06_AYUDANTE, Rol.R03_EGRESADO
     ));
 
-    // ── Crear tarea general + asignaciones ────────────────
-    @Transactional
-    public List<TaskAssignmentResponse> createForAbsent(Long meetingId, TaskRequest request, String creatorUsername) {
-        Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reunión", meetingId));
+    // ── Crear tarea + asignaciones para ausentes ───────────────
 
-        if (meeting.getStatus() == MeetingStatus.NO_INICIADA) {
+    @Transactional
+    public List<TaskAssignmentResponse> createForAbsent(Long reunionId, TaskRequest request, String creatorUsername) {
+        Reunion reunion = reunionRepository.findById(reunionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reunión", reunionId));
+
+        if (tareaRepository.existsById(reunionId)) {
+            throw new BusinessException("La reunión '" + reunion.getTitulo() + "' ya tiene una tarea creada.");
+        }
+
+        if (reunion.getEstado() == EstadoReunion.NO_INICIADA) {
             throw new BusinessException("No se pueden crear tareas para una reunión NO_INICIADA.");
         }
 
-        User creator = userRepository.findByUsernameIgnoreCase(creatorUsername)
+        Usuario creator = usuarioRepository.findByUsernameIgnoreCase(creatorUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + creatorUsername));
 
-        // IDs de quienes SÍ asistieron
-        List<Long> presentIds = attendanceRepository.findByMeetingWithDetails(meeting)
-                .stream().map(a -> a.getUser().getId()).collect(Collectors.toList());
+        // IDs que SÍ asistieron
+        List<Long> presentIds = asistenciaRepository.findByReunionWithDetails(reunion)
+                .stream().map(a -> a.getUsuario().getId()).collect(Collectors.toList());
 
-        // ESTUDIANTES + AYUDANTES ausentes
-        List<User> absentees = userRepository.findAll().stream()
-                .filter(u -> u.getRoles().stream().anyMatch(r -> ASSIGNABLE_ROLES.contains(r.getName())))
+        // Ausentes con roles asignables
+        List<Usuario> absentees = usuarioRepository.findAll().stream()
+                .filter(u -> u.getRoles().stream().anyMatch(ASSIGNABLE_ROLES::contains))
                 .filter(u -> !presentIds.contains(u.getId()))
                 .collect(Collectors.toList());
 
         if (absentees.isEmpty()) {
             throw new BusinessException(
-                    "Todos los estudiantes y ayudantes asistieron a '" + meeting.getTitle() + "'. Sin ausentes.");
+                    "Todos los estudiantes y ayudantes asistieron a '" + reunion.getTitulo() + "'. Sin ausentes.");
         }
 
-        // Crear la tarea general
-        Task task = Task.builder()
-                .meeting(meeting)
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .link(request.getLink())
+        // Crear Tarea con @MapsId (id = reunion.id)
+        Tarea tarea = Tarea.builder()
+                .reunion(reunion)
+                .titulo(request.getTitle())
+                .descripcion(request.getDescription())
+                .link(resolvePrimaryLink(request))
+                .linksExtraJson(serializeLinks(request.getLinks()))
                 .questionsJson(request.getQuestionsJson())
-                .createdBy(creator)
+                .estado(EstadoTarea.PENDIENTE)
+                .creadoPor(creator)
                 .build();
-        task = taskRepository.save(task);
+        tarea = tareaRepository.save(tarea);
 
-        // Crear asignaciones (sin duplicar si ya existe)
-        final Task savedTask = task;
-        List<TaskAssignment> toSave = absentees.stream()
-                .filter(u -> !assignmentRepository.existsByTaskIdAndAssignedToId(savedTask.getId(), u.getId()))
-                .map(u -> TaskAssignment.builder()
-                        .task(savedTask)
-                        .assignedTo(u)
-                        .status(TaskStatus.PENDING)
+        final Tarea savedTarea = tarea;
+        List<AsignacionTarea> toSave = absentees.stream()
+                .filter(u -> !asignacionTareaRepository.existsByTareaIdAndUsuarioId(savedTarea.getId(), u.getId()))
+                .map(u -> AsignacionTarea.builder()
+                        .tarea(savedTarea)
+                        .usuario(u)
+                        .estado(EstadoTarea.PENDIENTE)
                         .build())
                 .collect(Collectors.toList());
 
@@ -110,115 +108,148 @@ public class TaskService {
             throw new BusinessException("Ya existen asignaciones para todos los ausentes en esta tarea.");
         }
 
-        List<TaskAssignment> saved = assignmentRepository.saveAll(toSave);
+        List<AsignacionTarea> saved = asignacionTareaRepository.saveAll(toSave);
         log.info("Tarea id={} '{}' creada con {} asignaciones en reunión id={} por '{}'",
-                savedTask.getId(), request.getTitle(), saved.size(), meetingId, creatorUsername);
+                savedTarea.getId(), request.getTitle(), saved.size(), reunionId, creatorUsername);
 
         return saved.stream().map(this::mapAssignment).collect(Collectors.toList());
     }
 
-    // ── Mis tareas asignadas (ESTUDIANTE / AYUDANTE) ───────
+    // ── Mis asignaciones ───────────────────────────────────────
+
     @Transactional(readOnly = true)
     public List<TaskAssignmentResponse> findMyAssignments(String username) {
-        User user = userRepository.findByUsernameIgnoreCase(username)
+        Usuario usuario = usuarioRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + username));
-        return assignmentRepository.findByAssignedToId(user.getId())
+        return asignacionTareaRepository.findByUsuarioId(usuario.getId())
                 .stream().map(this::mapAssignment).collect(Collectors.toList());
     }
 
-    // ── Todas las tareas según rol ─────────────────────────
+    // ── Todas las tareas según rol ─────────────────────────────
+
     @Transactional(readOnly = true)
     public List<TaskResponse> findAllByRole(String username) {
-        User user = userRepository.findByUsernameIgnoreCase(username)
+        Usuario usuario = usuarioRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + username));
 
-        boolean isAdmin = user.getRoles().stream().anyMatch(r -> r.getName() == RoleName.ADMIN);
+        boolean isAdmin = usuario.getRoles().contains(Rol.R04_ADMIN);
 
-        List<Task> tasks = isAdmin
-                ? taskRepository.findAllWithDetails()
-                : taskRepository.findByCreatedByIdOrderByCreatedAtDesc(user.getId());
+        List<Tarea> tareas = isAdmin
+                ? tareaRepository.findAllWithDetails()
+                : tareaRepository.findByCreadoPorIdOrderByCreatedAtDesc(usuario.getId());
 
-        return tasks.stream().map(t -> mapTask(t, false)).collect(Collectors.toList());
+        return tareas.stream().map(t -> mapTask(t, false)).collect(Collectors.toList());
     }
 
-    // ── Asignaciones de una tarea (admin / profesor) ───────
+    // ── Asignaciones de una tarea ──────────────────────────────
+
     @Transactional(readOnly = true)
-    public List<TaskAssignmentResponse> getAssignments(Long taskId) {
-        if (!taskRepository.existsById(taskId)) throw new ResourceNotFoundException("Tarea", taskId);
-        return assignmentRepository.findByTaskIdWithUser(taskId)
+    public List<TaskAssignmentResponse> getAssignments(Long tareaId) {
+        if (!tareaRepository.existsById(tareaId)) throw new ResourceNotFoundException("Tarea", tareaId);
+        return asignacionTareaRepository.findByTareaIdWithUsuario(tareaId)
                 .stream().map(this::mapAssignment).collect(Collectors.toList());
     }
 
-    // ── Pendientes por reunión ─────────────────────────────
+    // ── Pendientes por reunión ─────────────────────────────────
+
     @Transactional(readOnly = true)
-    public List<TaskResponse> findPendingByMeeting(Long meetingId) {
-        if (!meetingRepository.existsById(meetingId)) throw new ResourceNotFoundException("Reunión", meetingId);
-        List<Task> tasks = taskRepository.findByMeetingId(meetingId);
-        return tasks.stream()
-                .filter(t -> assignmentRepository.countByTaskIdAndStatus(t.getId(), TaskStatus.PENDING) > 0)
+    public List<TaskResponse> findPendingByMeeting(Long reunionId) {
+        if (!reunionRepository.existsById(reunionId)) throw new ResourceNotFoundException("Reunión", reunionId);
+        List<Tarea> tareas = tareaRepository.findByReunionId(reunionId);
+        return tareas.stream()
+                .filter(t -> asignacionTareaRepository.countByTareaIdAndEstado(t.getId(), EstadoTarea.PENDIENTE) > 0)
                 .map(t -> mapTask(t, false))
                 .collect(Collectors.toList());
     }
 
-    // ── Editar tarea general (ADMIN) ───────────────────────
+    // ── Editar tarea ───────────────────────────────────────────
+
     @Transactional
     public TaskResponse updateTask(Long id, TaskRequest request) {
-        Task task = taskRepository.findById(id)
+        Tarea tarea = tareaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tarea", id));
-        task.setTitle(request.getTitle());
-        task.setDescription(request.getDescription());
-        task.setLink(request.getLink());
-        task.setQuestionsJson(request.getQuestionsJson());
-        log.info("Tarea id={} actualizada (impacta a todos los asignados)", id);
-        return mapTask(taskRepository.save(task), false);
+        tarea.setTitulo(request.getTitle());
+        tarea.setDescripcion(request.getDescription());
+        tarea.setLink(resolvePrimaryLink(request));
+        tarea.setLinksExtraJson(serializeLinks(request.getLinks()));
+        tarea.setQuestionsJson(request.getQuestionsJson());
+        log.info("Tarea id={} actualizada", id);
+        return mapTask(tareaRepository.save(tarea), false);
     }
 
-    // ── Eliminar tarea (ADMIN) — cascade borra assignments ─
+    // ── Eliminar tarea ─────────────────────────────────────────
+
     @Transactional
     public void deleteTask(Long id) {
-        Task task = taskRepository.findById(id)
+        Tarea tarea = tareaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tarea", id));
-        taskRepository.delete(task); // cascade ALL + orphanRemoval eliminan las assignments
-        log.info("Tarea id={} '{}' eliminada junto con sus asignaciones", id, task.getTitle());
+        tareaRepository.delete(tarea);
+        log.info("Tarea id={} '{}' eliminada", id, tarea.getTitulo());
     }
 
-    // ── Cambiar estado de una asignación (ADMIN) ───────────
     @Transactional
-    public TaskAssignmentResponse changeAssignmentStatus(Long assignmentId, String statusStr) {
-        TaskAssignment assignment = assignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Asignación", assignmentId));
-        TaskStatus newStatus;
-        try {
-            newStatus = TaskStatus.valueOf(statusStr.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException("Estado inválido: " + statusStr + ". Válidos: PENDING, COMPLETED, CORRECTED");
+    public TaskResponse blockTask(Long id) {
+        Tarea tarea = tareaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tarea", id));
+
+        if (tarea.getEstado() == EstadoTarea.BLOQUEADA) {
+            throw new BusinessException("La tarea ya está bloqueada.");
         }
-        assignment.setStatus(newStatus);
-        log.info("Asignación id={} → estado {}", assignmentId, newStatus);
-        return mapAssignment(assignmentRepository.save(assignment));
+
+        tarea.setEstado(EstadoTarea.BLOQUEADA);
+        tareaRepository.save(tarea);
+
+        int updated = asignacionTareaRepository.updateEstadoByTareaIdAndEstado(
+                id, EstadoTarea.PENDIENTE, EstadoTarea.BLOQUEADA
+        );
+        log.info("Tarea id={} bloqueada. Asignaciones pendientes bloqueadas={}", id, updated);
+        return mapTask(tarea, false);
     }
 
-    // ── Submit quiz (ESTUDIANTE / AYUDANTE) ─────────────────
+    // ── Cambiar estado de asignación ───────────────────────────
+
+    @Transactional
+    public TaskAssignmentResponse changeAssignmentStatus(Long assignmentId, String estadoStr) {
+        AsignacionTarea asignacion = asignacionTareaRepository.findById(assignmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Asignación", assignmentId));
+        EstadoTarea newEstado;
+        try {
+            newEstado = EstadoTarea.valueOf(estadoStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("Estado inválido: " + estadoStr + ". Válidos: PENDIENTE, COMPLETADA, BLOQUEADA");
+        }
+        if (newEstado == EstadoTarea.COMPLETADA) {
+            asignacion.setFechaCompletado(LocalDateTime.now());
+        }
+        asignacion.setEstado(newEstado);
+        log.info("Asignación id={} → estado {}", assignmentId, newEstado);
+        return mapAssignment(asignacionTareaRepository.save(asignacion));
+    }
+
+    // ── Submit quiz ────────────────────────────────────────────
+
     @Transactional
     public TaskAssignmentResponse submitQuiz(Long assignmentId, List<Integer> answers, String username) {
-        TaskAssignment assignment = assignmentRepository.findById(assignmentId)
+        AsignacionTarea asignacion = asignacionTareaRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Asignación", assignmentId));
 
-        // Verify the assignment belongs to this user
-        User user = userRepository.findByUsernameIgnoreCase(username)
-                .or(() -> userRepository.findByEmailIgnoreCase(username))
+        Usuario usuario = usuarioRepository.findByUsernameIgnoreCase(username)
+                .or(() -> usuarioRepository.findByCredencial_EmailIgnoreCase(username))
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + username));
-        if (!assignment.getAssignedTo().getId().equals(user.getId())) {
+
+        if (!asignacion.getUsuario().getId().equals(usuario.getId())) {
             throw new BusinessException("Esta asignación no te pertenece.");
         }
 
-        // Already approved — no need to retry
-        if (assignment.getStatus() == TaskStatus.APPROVED) {
-            throw new BusinessException("Ya aprobaste este quiz. No es necesario rendirlo nuevamente.");
+        if (asignacion.getTarea().getEstado() == EstadoTarea.BLOQUEADA || asignacion.getEstado() == EstadoTarea.BLOQUEADA) {
+            throw new BusinessException("Esta tarea está bloqueada. Ya no se puede recuperar asistencia.");
         }
 
-        // Parse questions
-        String questionsJson = assignment.getTask().getQuestionsJson();
+        if (asignacion.getEstado() == EstadoTarea.COMPLETADA) {
+            throw new BusinessException("Ya completaste este quiz.");
+        }
+
+        String questionsJson = asignacion.getTarea().getQuestionsJson();
         if (questionsJson == null || questionsJson.isBlank()) {
             throw new BusinessException("Esta tarea no tiene un quiz configurado.");
         }
@@ -235,7 +266,6 @@ public class TaskService {
             throw new BusinessException("Debés responder todas las preguntas (" + questions.size() + ").");
         }
 
-        // Calculate score
         int correct = 0;
         for (int i = 0; i < questions.size(); i++) {
             @SuppressWarnings("unchecked")
@@ -248,80 +278,71 @@ public class TaskService {
         }
 
         int scorePercent = (int) Math.round((correct * 100.0) / questions.size());
+        int currentAttempts = asignacion.getAttempts();
+        EstadoTarea newEstado = scorePercent >= 70 ? EstadoTarea.COMPLETADA : EstadoTarea.PENDIENTE;
+        Long reunionId = asignacion.getTarea().getReunion().getId();
+        String reunionTitulo = asignacion.getTarea().getReunion().getTitulo();
+        Long userId = usuario.getId();
 
-        // Capture IDs BEFORE native query clears persistence context
-        int currentAttempts = assignment.getAttempts();
-        TaskStatus newStatus = scorePercent >= 70 ? TaskStatus.APPROVED : TaskStatus.PENDING;
-        Long meetingId = assignment.getTask().getMeeting().getId();
-        String meetingTitle = assignment.getTask().getMeeting().getTitle();
-        Long userId = user.getId();
+        asignacionTareaRepository.updateQuizResult(assignmentId, scorePercent, currentAttempts + 1, newEstado);
 
-        // UPDATE existing assignment via native query
-        assignmentRepository.updateQuizResult(assignmentId, scorePercent, currentAttempts + 1, newStatus.name());
-
-        log.info("Quiz {}: assignment={}, user='{}', score={}%, intento #{}",
-                newStatus == TaskStatus.APPROVED ? "APROBADO" : "NO aprobado",
+        log.info("Quiz {}: asignacion={}, user='{}', score={}%, intento #{}",
+                newEstado == EstadoTarea.COMPLETADA ? "COMPLETADO" : "PENDIENTE",
                 assignmentId, username, scorePercent, currentAttempts + 1);
 
-        // Si aprobó, registrar asistencia automáticamente via SQL nativo
-        if (newStatus == TaskStatus.APPROVED) {
-            registerAutoAttendance(meetingId, userId, username, meetingTitle);
+        if (newEstado == EstadoTarea.COMPLETADA) {
+            registerAutoAttendance(reunionId, userId, username, reunionTitulo);
+            asignacion.setFechaCompletado(LocalDateTime.now());
         }
 
-        // Update in-memory object (already has task & user loaded) — avoid reloading from DB
-        assignment.setScore(scorePercent);
-        assignment.setAttempts(currentAttempts + 1);
-        assignment.setStatus(newStatus);
-        return mapAssignment(assignment);
+        asignacion.setScore(scorePercent);
+        asignacion.setAttempts(currentAttempts + 1);
+        asignacion.setEstado(newEstado);
+        return mapAssignment(asignacion);
     }
 
-    /**
-     * Registra asistencia automáticamente cuando un usuario aprueba el quiz.
-     * Usa INSERT nativo con ON CONFLICT DO NOTHING para evitar duplicados
-     * sin marcar la transacción como rollback-only.
-     */
-    private void registerAutoAttendance(Long meetingId, Long userId, String username, String meetingTitle) {
+    private void registerAutoAttendance(Long reunionId, Long userId, String username, String reunionTitulo) {
         try {
             entityManager.createNativeQuery(
-                    "INSERT INTO attendances (meeting_id, user_id, registered_at) " +
-                    "VALUES (:meetingId, :userId, NOW()) " +
-                    "ON CONFLICT (meeting_id, user_id) DO NOTHING")
-                    .setParameter("meetingId", meetingId)
+                    "INSERT INTO asistencias (reunion_id, usuario_id, fecha_registro, presente) " +
+                    "VALUES (:reunionId, :userId, NOW(), true) " +
+                    "ON CONFLICT (reunion_id, usuario_id) DO NOTHING")
+                    .setParameter("reunionId", reunionId)
                     .setParameter("userId", userId)
                     .executeUpdate();
-            log.info("Asistencia recuperada automáticamente: user='{}', meeting='{}'",
-                    username, meetingTitle);
+            log.info("Asistencia auto-registrada: user='{}', reunion='{}'", username, reunionTitulo);
         } catch (Exception ex) {
-            // No fallar el quiz por error en asistencia — solo loguear
-            log.warn("No se pudo registrar asistencia automática para user='{}': {}",
-                    username, ex.getMessage());
+            log.warn("No se pudo auto-registrar asistencia para user='{}': {}", username, ex.getMessage());
         }
     }
 
-    // ── Helpers ────────────────────────────────────────────
-    private TaskResponse mapTask(Task t, boolean includeAssignments) {
-        long total   = assignmentRepository.countByTaskId(t.getId());
-        long pending = assignmentRepository.countByTaskIdAndStatus(t.getId(), TaskStatus.PENDING);
+    // ── Mappers ────────────────────────────────────────────────
+
+    private TaskResponse mapTask(Tarea t, boolean includeAssignments) {
+        long total    = asignacionTareaRepository.countByTareaId(t.getId());
+        long pending  = asignacionTareaRepository.countByTareaIdAndEstado(t.getId(), EstadoTarea.PENDIENTE);
         return TaskResponse.builder()
                 .id(t.getId())
-                .meetingId(t.getMeeting().getId())
-                .meetingTitle(t.getMeeting().getTitle())
-                .title(t.getTitle())
-                .description(t.getDescription())
+                .reunionId(t.getReunion().getId())
+                .reunionTitulo(t.getReunion().getTitulo())
+                .titulo(t.getTitulo())
+                .descripcion(t.getDescripcion())
                 .link(t.getLink())
+                .links(deserializeLinks(t.getLinksExtraJson(), t.getLink()))
                 .questionsJson(t.getQuestionsJson())
-                .createdById(t.getCreatedBy().getId())
-                .createdByUsername(t.getCreatedBy().getUsername())
+                .estado(t.getEstado())
+                .creadoPorId(t.getCreadoPor().getId())
+                .creadoPorUsername(t.getCreadoPor().getUsername())
                 .createdAt(t.getCreatedAt())
-                .assignmentCount(total)
-                .pendingCount(pending)
+                .totalAsignaciones(total)
+                .pendientes(pending)
                 .build();
     }
 
-    private TaskAssignmentResponse mapAssignment(TaskAssignment a) {
-        // Strip correct answers when returning to student (so they can't cheat)
+    private TaskAssignmentResponse mapAssignment(AsignacionTarea a) {
+        // Quitar respuestas correctas para no hacer trampa
         String safeQuestions = null;
-        String raw = a.getTask().getQuestionsJson();
+        String raw = a.getTarea().getQuestionsJson();
         if (raw != null && !raw.isBlank()) {
             try {
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -331,26 +352,77 @@ public class TaskService {
                 qs.forEach(q -> q.remove("correct"));
                 safeQuestions = mapper.writeValueAsString(qs);
             } catch (Exception e) {
-                safeQuestions = raw; // fallback
+                safeQuestions = raw;
             }
         }
 
         return TaskAssignmentResponse.builder()
                 .id(a.getId())
-                .taskId(a.getTask().getId())
-                .taskTitle(a.getTask().getTitle())
-                .meetingId(a.getTask().getMeeting() != null ? a.getTask().getMeeting().getId() : null)
-                .meetingTitle(a.getTask().getMeeting() != null ? a.getTask().getMeeting().getTitle() : null)
-                .taskDescription(a.getTask().getDescription())
-                .userId(a.getAssignedTo().getId())
-                .username(a.getAssignedTo().getUsername())
-                .firstName(a.getAssignedTo().getFirstName())
-                .lastName(a.getAssignedTo().getLastName())
-                .status(a.getStatus())
+                .tareaId(a.getTarea().getId())
+                .tituloTarea(a.getTarea().getTitulo())
+                .reunionId(a.getTarea().getReunion() != null ? a.getTarea().getReunion().getId() : null)
+                .reunionTitulo(a.getTarea().getReunion() != null ? a.getTarea().getReunion().getTitulo() : null)
+                .descripcionTarea(a.getTarea().getDescripcion())
+                .linkTarea(a.getTarea().getLink())
+                .linksTarea(deserializeLinks(a.getTarea().getLinksExtraJson(), a.getTarea().getLink()))
+                .usuarioId(a.getUsuario().getId())
+                .username(a.getUsuario().getUsername())
+                .nombre(a.getUsuario().getNombre())
+                .apellido(a.getUsuario().getApellido())
+                .estado(a.getEstado())
                 .score(a.getScore())
-                .attempts(a.getAttempts())
+                .intentos(a.getAttempts())
                 .questionsJson(safeQuestions)
-                .createdAt(a.getCreatedAt())
+                .fechaAsignacion(a.getFechaAsignacion())
+                .fechaCompletado(a.getFechaCompletado())
                 .build();
+    }
+
+    private String resolvePrimaryLink(TaskRequest request) {
+        if (request.getLink() != null && !request.getLink().isBlank()) {
+            return request.getLink().trim();
+        }
+        if (request.getLinks() != null) {
+            return request.getLinks().stream()
+                    .filter(l -> l != null && !l.isBlank())
+                    .map(String::trim)
+                    .findFirst()
+                    .orElse(null);
+        }
+        return null;
+    }
+
+    private String serializeLinks(List<String> links) {
+        if (links == null || links.isEmpty()) return "[]";
+        List<String> cleaned = links.stream()
+                .filter(l -> l != null && !l.isBlank())
+                .map(String::trim)
+                .distinct()
+                .collect(Collectors.toList());
+        try {
+            return MAPPER.writeValueAsString(cleaned);
+        } catch (Exception e) {
+            return "[]";
+        }
+    }
+
+    private List<String> deserializeLinks(String linksJson, String fallbackLink) {
+        try {
+            if (linksJson != null && !linksJson.isBlank()) {
+                List<String> parsed = MAPPER.readValue(linksJson,
+                        MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
+                List<String> cleaned = parsed.stream()
+                        .filter(l -> l != null && !l.isBlank())
+                        .map(String::trim)
+                        .distinct()
+                        .collect(Collectors.toList());
+                if (!cleaned.isEmpty()) return cleaned;
+            }
+        } catch (Exception ignored) {
+        }
+        if (fallbackLink != null && !fallbackLink.isBlank()) {
+            return List.of(fallbackLink.trim());
+        }
+        return List.of();
     }
 }

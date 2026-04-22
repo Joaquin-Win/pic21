@@ -18,13 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * Controlador de asistencias.
- *
- * Endpoints:
- *   POST /api/attendances/meeting/{meetingId}/self       → cualquier usuario autenticado
- *   GET  /api/attendances/meeting/{meetingId}            → ADMIN, PROFESOR, AYUDANTE
- *   GET  /api/attendances/meeting/{meetingId}/excel      → ADMIN, PROFESOR, AYUDANTE (descarga Excel)
- *   GET  /api/attendances/excel                          → ADMIN, PROFESOR, AYUDANTE (descarga Excel global)
+ * Controlador de asistencias (UML v8).
  */
 @RestController
 @RequestMapping("/api/attendances")
@@ -34,24 +28,8 @@ public class AttendanceController {
     private final AttendanceService attendanceService;
     private final ExcelExportService excelExportService;
 
-    // -----------------------------------------------------------------------
-    // POST /api/attendances/meeting/{meetingId}/self
-    // Auto-registro del usuario autenticado
-    // -----------------------------------------------------------------------
-
-    /**
-     * Registra la asistencia del usuario autenticado (auto-registro).
-     * <p>
-     * Reglas validadas en el servicio:
-     * - La reunión debe estar ACTIVA.
-     * - El usuario no puede registrarse dos veces en la misma reunión.
-     * </p>
-     *
-     * @param meetingId   ID de la reunión
-     * @param userDetails usuario autenticado inyectado por Spring Security
-     * @return 201 Created con los datos de la asistencia registrada
-     */
     @PostMapping("/meeting/{meetingId}/self")
+    @PreAuthorize("!hasAnyRole('R04_ADMIN','R05_DIRECTOR','R01_PROFESOR') and hasAnyRole('R02_ESTUDIANTE','R03_EGRESADO','R06_AYUDANTE')")
     public ResponseEntity<AttendanceResponse> registerSelf(
             @PathVariable Long meetingId,
             @RequestBody(required = false) com.pic21.dto.request.AttendanceRequest request,
@@ -62,47 +40,19 @@ public class AttendanceController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // -----------------------------------------------------------------------
-    // GET /api/attendances/meeting/{meetingId}
-    // Ver asistencias de una reunión — solo ADMIN, PROFESOR, AYUDANTE
-    // -----------------------------------------------------------------------
-
-    /**
-     * Lista todas las asistencias registradas en una reunión.
-     *
-     * @param meetingId ID de la reunión
-     * @return lista de asistencias ordenadas por fecha de registro
-     */
     @GetMapping("/meeting/{meetingId}")
-    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR','AYUDANTE')")
-    public ResponseEntity<List<AttendanceResponse>> findByMeeting(
-            @PathVariable Long meetingId) {
-
-        return ResponseEntity.ok(attendanceService.findByMeeting(meetingId));
+    @PreAuthorize("hasAnyRole('R04_ADMIN','R05_DIRECTOR')")
+    public ResponseEntity<List<AttendanceResponse>> findByMeeting(@PathVariable Long meetingId) {
+        return ResponseEntity.ok(attendanceService.findByReunion(meetingId));
     }
 
-    // -----------------------------------------------------------------------
-    // GET /api/attendances/meeting/{meetingId}/excel
-    // Exportar asistencias de una reunión como Excel
-    // -----------------------------------------------------------------------
-
-    /**
-     * Descarga un archivo Excel (.xlsx) con las asistencias de la reunión indicada.
-     * El nombre del archivo incluye el ID de la reunión y la fecha de exportación.
-     *
-     * @param meetingId ID de la reunión
-     * @return archivo .xlsx como descarga
-     */
     @GetMapping("/meeting/{meetingId}/excel")
-    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR','AYUDANTE')")
-    public ResponseEntity<byte[]> exportMeetingAttendancesToExcel(
-            @PathVariable Long meetingId) {
-
+    @PreAuthorize("hasAnyRole('R04_ADMIN','R05_DIRECTOR')")
+    public ResponseEntity<byte[]> exportMeetingAttendancesToExcel(@PathVariable Long meetingId) {
         byte[] excelBytes = excelExportService.exportAttendanceByMeeting(meetingId);
         String filename = "asistencias_reunion_" + meetingId + "_"
                 + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"))
                 + ".xlsx";
-
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.parseMediaType(
@@ -110,26 +60,13 @@ public class AttendanceController {
                 .body(excelBytes);
     }
 
-    // -----------------------------------------------------------------------
-    // GET /api/attendances/excel
-    // Exportar todas las asistencias (global) como Excel
-    // -----------------------------------------------------------------------
-
-    /**
-     * Descarga un archivo Excel (.xlsx) con todas las asistencias del sistema,
-     * organizadas en un libro con hoja de resumen y una hoja por reunión.
-     *
-     * @return archivo .xlsx como descarga
-     */
     @GetMapping("/excel")
-    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR','AYUDANTE')")
+    @PreAuthorize("hasAnyRole('R04_ADMIN','R05_DIRECTOR')")
     public ResponseEntity<byte[]> exportAllAttendancesToExcel() {
-
         byte[] excelBytes = excelExportService.exportAllAttendances();
         String filename = "asistencias_global_"
                 + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"))
                 + ".xlsx";
-
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.parseMediaType(

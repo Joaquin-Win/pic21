@@ -1,10 +1,20 @@
 /* ═══════════════════════════════════════════════════════
-   PIC21 — AuthService: login, logout, token, roles
+   PIC21 — AuthService: login, logout, token, roles (UML v8)
 ═══════════════════════════════════════════════════════ */
 
 const AuthService = (() => {
   const TOKEN_KEY = PIC21_CONFIG.TOKEN_KEY;
   const USER_KEY  = PIC21_CONFIG.USER_KEY;
+
+  // Mapa UML v8: rol enum → etiqueta legible
+  const ROLE_DISPLAY_NAMES = {
+    'R04_ADMIN':      'Admin',
+    'R05_DIRECTOR':   'Director',
+    'R01_PROFESOR':   'Profesor',
+    'R03_EGRESADO':   'Egresado',
+    'R06_AYUDANTE':   'Ayudante',
+    'R02_ESTUDIANTE': 'Estudiante',
+  };
 
   // ── Login ────────────────────────────────────────────
   async function login(username, password) {
@@ -12,12 +22,12 @@ const AuthService = (() => {
     if (data?.token) {
       localStorage.setItem(TOKEN_KEY, data.token);
       const user = {
-        id:        data.id,
-        username:  data.username,
-        email:     data.email,
-        firstName: data.firstName,
-        lastName:  data.lastName,
-        roles:     data.roles || [],
+        id:       data.id,
+        username: data.username,
+        nombre:   data.nombre,
+        apellido: data.apellido,
+        email:    data.email,
+        roles:    data.roles || [],
       };
       localStorage.setItem(USER_KEY, JSON.stringify(user));
       return user;
@@ -29,11 +39,9 @@ const AuthService = (() => {
   function logout() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-    // Sidebar needs to be rebuilt on next login
     if (window.Sidebar) Sidebar.reset();
     if (window.Topbar)  Topbar.reset();
-    // Router may not be defined yet during early load, guard it
-    if (window.Router) Router.navigate('/login');
+    if (window.Router)  Router.navigate('/login');
     else window.location.hash = '#/login';
   }
 
@@ -47,41 +55,48 @@ const AuthService = (() => {
 
   function isAuthenticated() { return !!getToken() && !!getUser(); }
 
-  // ── Role checks ──────────────────────────────────────
+  // ── Role checks (UML v8) ─────────────────────────────
   function hasRole(role) {
     const user = getUser();
     return user?.roles?.includes(role) ?? false;
   }
 
-  function isAdmin()   { return hasRole('ADMIN'); }
-  function isProfesor(){ return hasRole('PROFESOR'); }
-  function isAyudante(){ return hasRole('AYUDANTE'); }
-  function isEstudiante(){ return hasRole('ESTUDIANTE'); }
-  function isEgresado()  { return hasRole('EGRESADO'); }
+  function isAdmin()     { return hasRole('R04_ADMIN'); }
+  function isDirector()  { return hasRole('R05_DIRECTOR'); }
+  function isProfesor()  { return hasRole('R01_PROFESOR'); }
+  function isAyudante()  { return hasRole('R06_AYUDANTE'); }
+  function isEstudiante(){ return hasRole('R02_ESTUDIANTE'); }
+  function isEgresado()  { return hasRole('R03_EGRESADO'); }
 
-  function isStaff()   { return isAdmin() || isProfesor() || isAyudante(); }
+  function isStaff()     { return isAdmin() || isDirector() || isProfesor() || isAyudante(); }
 
   function getPrimaryRole() {
     const user = getUser();
-    if (!user?.roles?.length) return 'ESTUDIANTE';
-    if (user.roles.includes('ADMIN')) return 'ADMIN';
-    if (user.roles.includes('PROFESOR')) return 'PROFESOR';
-    if (user.roles.includes('AYUDANTE')) return 'AYUDANTE';
-    if (user.roles.includes('EGRESADO')) return 'EGRESADO';
-    return 'ESTUDIANTE';
+    if (!user?.roles?.length) return 'R02_ESTUDIANTE';
+    if (user.roles.includes('R04_ADMIN'))    return 'R04_ADMIN';
+    if (user.roles.includes('R01_PROFESOR')) return 'R01_PROFESOR';
+    if (user.roles.includes('R05_DIRECTOR')) return 'R05_DIRECTOR';
+    if (user.roles.includes('R06_AYUDANTE')) return 'R06_AYUDANTE';
+    if (user.roles.includes('R03_EGRESADO')) return 'R03_EGRESADO';
+    return 'R02_ESTUDIANTE';
   }
 
   function getDisplayName() {
     const u = getUser();
     if (!u) return '';
-    if (u.firstName || u.lastName) return `${u.firstName || ''} ${u.lastName || ''}`.trim();
+    if (u.nombre || u.apellido) return `${u.nombre || ''} ${u.apellido || ''}`.trim();
     return u.username;
+  }
+
+  function getDisplayRole() {
+    const role = getPrimaryRole();
+    return ROLE_DISPLAY_NAMES[role] || role;
   }
 
   return {
     login, logout, getToken, getUser,
     isAuthenticated, hasRole,
-    isAdmin, isProfesor, isAyudante, isEstudiante, isEgresado, isStaff,
-    getPrimaryRole, getDisplayName,
+    isAdmin, isDirector, isProfesor, isAyudante, isEstudiante, isEgresado, isStaff,
+    getPrimaryRole, getDisplayName, getDisplayRole,
   };
 })();

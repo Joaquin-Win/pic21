@@ -209,9 +209,29 @@ const LoginPage = (() => {
 
           <div class="form-group">
             <label class="form-label">Contraseña *</label>
-            <input class="form-control" id="regPassword" type="password" placeholder="Mínimo 6 chars, 1 MAYÚSCULA, 1 número, 1 símbolo" required minlength="6" />
+            <input class="form-control" id="regPassword" type="password" placeholder="Mínimo 6 chars, 1 MAYÚSCULA, 1 número, 1 símbolo" required minlength="6" autocomplete="new-password" />
             <small style="color:#888;font-size:.78rem;">Debe incluir: 1 mayúscula, 1 número y 1 símbolo (@#$!. etc)</small>
           </div>
+          <div class="form-group">
+            <label class="form-label">Repetir contraseña *</label>
+            <input class="form-control" id="regPassword2" type="password" placeholder="Volvé a escribir la misma contraseña" required minlength="6" autocomplete="new-password" />
+          </div>
+
+          <!-- Egresado / Profesor: elegir solo uno -->
+          ${!esEstudiante ? `
+          <div class="form-group">
+            <label class="form-label">Sos egresado o profesor? * <small style="font-weight:400;color:#888;">(solo una opción)</small></label>
+            <div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.25rem;">
+              <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.95rem;">
+                <input type="radio" name="regRolDocenteEgresado" value="R03_EGRESADO" checked style="width:18px;height:18px;" />
+                Egresado
+              </label>
+              <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.95rem;">
+                <input type="radio" name="regRolDocenteEgresado" value="R01_PROFESOR" style="width:18px;height:18px;" />
+                Profesor
+              </label>
+            </div>
+          </div>` : ''}
 
           <!-- DNI solo para Egresado/Docente | Legajo solo para Estudiante -->
           ${esEstudiante ? `
@@ -355,6 +375,11 @@ const LoginPage = (() => {
 
     // ── Validación de contraseña (ambos tipos) ──────────────
     const pwd = document.getElementById('regPassword').value;
+    const pwd2 = document.getElementById('regPassword2')?.value || '';
+    if (pwd !== pwd2) {
+      showError('Las contraseñas no coinciden. Verificá que las hayas escrito igual las dos veces.');
+      return;
+    }
     if (!/[A-Z]/.test(pwd)) {
       showError('La contraseña debe incluir al menos 1 letra mayúscula.');
       return;
@@ -411,7 +436,11 @@ const LoginPage = (() => {
     setHTML('#registerBtnText', '<span class="spinner" style="width:18px;height:18px;border-width:2px;display:inline-block;"></span> Registrando...');
     errEl.classList.add('hidden');
 
-    const rol = esEstudiante ? 'R02_ESTUDIANTE' : 'R03_EGRESADO';
+    let rol = 'R02_ESTUDIANTE';
+    if (!esEstudiante) {
+      const sel = document.querySelector('input[name="regRolDocenteEgresado"]:checked');
+      rol = sel?.value || 'R03_EGRESADO';
+    }
 
     const body = {
       nombre:      document.getElementById('regFirstName').value.trim(),

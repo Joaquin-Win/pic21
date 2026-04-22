@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 /**
  * Archivo PDF adjunto a una reunión.
  * Permite múltiples archivos por reunión.
+ * Tabla mantenida como meeting_files para compatibilidad con datos existentes.
  */
 @Entity
 @Table(name = "meeting_files")
@@ -17,7 +18,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class MeetingFile {
+public class ArchivoReunion {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,21 +30,18 @@ public class MeetingFile {
     @Column(name = "file_type", nullable = false, length = 100)
     private String fileType;
 
-    /** Contenido binario del archivo */
     @Lob
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "file_data", nullable = false)
     private byte[] fileData;
 
-    /** Reunión a la que está asociado el archivo */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "meeting_id", nullable = false)
-    private Meeting meeting;
+    private Reunion reunion;
 
-    /** Usuario que subió el archivo */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uploaded_by", nullable = false)
-    private User uploadedBy;
+    private Usuario subidoPor;
 
     @CreationTimestamp
     @Column(name = "uploaded_at", updatable = false)

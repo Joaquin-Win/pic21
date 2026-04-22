@@ -1,9 +1,7 @@
 package com.pic21.config;
 
-import com.pic21.domain.Role;
-import com.pic21.domain.User;
-import com.pic21.repository.RoleRepository;
-import com.pic21.repository.UserRepository;
+import com.pic21.domain.*;
+import com.pic21.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -15,131 +13,108 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
-import java.util.HashSet;
+import java.util.EnumSet;
 import java.util.Optional;
-import java.util.Set;
 
 /**
- * Inicializa datos necesarios al arrancar la aplicación:
- * - Crea los 4 roles si no existen
- * - Crea o actualiza el usuario administrador
- * - Migra columnas de DB si faltan (quiz: score, attempts, questions_json)
+ * Inicializa datos al arrancar la aplicación (UML v8):
+ * - Crea o actualiza el usuario administrador.
+ * - Migra columnas necesarias en PostgreSQL.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements ApplicationRunner {
 
-    private final RoleRepository roleRepository;
-    private final UserRepository userRepository;
+    private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
 
     @PersistenceContext
     private EntityManager entityManager;
 
-    /** Contraseña del admin — se aplica al crear o si no coincide. */
-    private static final String ADMIN_PASSWORD = "msjj2023";
+    private static final String ADMIN_USERNAME = "admin";
+    private static final String ADMIN_EMAIL    = "admin@pic21.com";
+    private static final String ADMIN_PASSWORD  = "Msjj2023!";
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        migrateQuizColumns();  // Must run BEFORE initRoles to drop CHECK constraints
-        initRoles();
+        migrateColumns();
         initAdmin();
     }
 
-    private void initRoles() {
-        for (Role.RoleName roleName : Role.RoleName.values()) {
-            if (!roleRepository.existsByName(roleName)) {
-                String desc = switch (roleName) {
-                    case ADMIN      -> "Administrador del sistema";
-                    case PROFESOR   -> "Profesor de la institución";
-                    case AYUDANTE   -> "Ayudante de cátedra";
-                    case ESTUDIANTE -> "Estudiante";
-                    case EGRESADO   -> "Egresado";
-                };
-                roleRepository.save(new Role(roleName, desc));
-                log.info("Rol creado: {}", roleName);
-            }
-        }
-    }
-
     private void initAdmin() {
-        Optional<User> existing = userRepository.findByUsernameIgnoreCase("admin");
+        Optional<Usuario> existing = usuarioRepository.findByUsernameIgnoreCase(ADMIN_USERNAME);
         if (existing.isPresent()) {
-            User admin = existing.get();
-            // Actualizar la contraseña si cambió
-            if (!passwordEncoder.matches(ADMIN_PASSWORD, admin.getPassword())) {
-                admin.setPassword(passwordEncoder.encode(ADMIN_PASSWORD));
-                userRepository.save(admin);
-                log.info("Contraseña del admin actualizada.");
-            } else {
-                log.debug("Admin ya existe con la contraseña correcta, omitiendo.");
+            Usuario admin = existing.get();
+            boolean changed = false;
+
+            if (!ADMIN_EMAIL.equals(admin.getCredencial().getEmail())) {
+                admin.getCredencial().setEmail(ADMIN_EMAIL);
+                changed = true;
+            }
+            if (!passwordEncoder.matches(ADMIN_PASSWORD, admin.getCredencial().getPasswordHash())) {
+                admin.getCredencial().setPasswordHash(passwordEncoder.encode(ADMIN_PASSWORD));
+                changed = true;
+            }
+            if (changed) {
+                usuarioRepository.save(admin);
+                log.info("Credenciales del admin actualizadas.");
             }
             return;
         }
 
-        // Si el admin no existe, crearlo
-        Role role = roleRepository.findByName(Role.RoleName.ADMIN)
-                .orElseThrow(() -> new IllegalStateException("Rol ADMIN no encontrado"));
-
-        Set<Role> roles = new HashSet<>();
-        roles.add(role);
-
-        User admin = User.builder()
-                .username("admin")
-                .email("admin@pic21.com")
-                .password(passwordEncoder.encode(ADMIN_PASSWORD))
-                .firstName("Admin")
-                .lastName("Admin")
-                .enabled(true)
-                .roles(roles)
+        // Crear admin si no existe
+        Credencial credencial = Credencial.builder()
+                .email(ADMIN_EMAIL)
+                .passwordHash(passwordEncoder.encode(ADMIN_PASSWORD))
                 .build();
 
-        userRepository.save(admin);
-        log.info("Usuario admin creado.");
+        PerfilPersonal perfil = PerfilPersonal.builder()
+                .dni("00000000")
+                .correo(ADMIN_EMAIL)
+                .build();
+
+        Usuario admin = Usuario.builder()
+                .username(ADMIN_USERNAME)
+                .nombre("Admin")
+                .apellido("Admin")
+                .roles(EnumSet.of(Rol.R04_ADMIN))
+                .activo(true)
+                .credencial(credencial)
+                .perfilPersonal(perfil)
+                .build();
+
+        usuarioRepository.save(admin);
+        log.info("Usuario admin creado (R04_ADMIN).");
     }
 
     /**
-     * Asegura que las columnas de quiz existan en la DB de producción.
-     * Hibernate ddl-auto=update a veces no agrega columnas o las crea con NOT NULL
-     * sin default, causando errores en registros pre-existentes.
+     * Migración de columnas para compatibilidad con PostgreSQL.
+     * Usa IF NOT EXISTS / IF EXISTS para idempotencia.
      */
-    private void migrateQuizColumns() {
+    private void migrateColumns() {
         try {
-            // ── ROLES: drop CHECK constraint so new roles (EGRESADO) can be inserted ──
-            safeExecute("ALTER TABLE roles DROP CONSTRAINT IF EXISTS roles_name_check");
-            safeExecute("ALTER TABLE roles ALTER COLUMN name TYPE VARCHAR(50)");
+            // Asignaciones de tarea
+            safeExecute("ALTER TABLE asignaciones_tarea ADD COLUMN IF NOT EXISTS score INTEGER");
+            safeExecute("ALTER TABLE asignaciones_tarea ADD COLUMN IF NOT EXISTS attempts INTEGER DEFAULT 0");
+            safeExecute("ALTER TABLE asignaciones_tarea ALTER COLUMN attempts SET DEFAULT 0");
+            safeExecute("UPDATE asignaciones_tarea SET attempts = 0 WHERE attempts IS NULL");
+            safeExecute("ALTER TABLE asignaciones_tarea ALTER COLUMN estado TYPE VARCHAR(20)");
+            safeExecute("ALTER TABLE asignaciones_tarea DROP CONSTRAINT IF EXISTS asignaciones_tarea_estado_check");
 
-            // task_assignments: score (nullable int), attempts (default 0)
-            safeExecute("ALTER TABLE task_assignments ADD COLUMN IF NOT EXISTS score INTEGER");
-            safeExecute("ALTER TABLE task_assignments ADD COLUMN IF NOT EXISTS attempts INTEGER DEFAULT 0");
-            safeExecute("ALTER TABLE task_assignments ALTER COLUMN attempts SET DEFAULT 0");
-            safeExecute("ALTER TABLE task_assignments ALTER COLUMN attempts DROP NOT NULL");
-            safeExecute("UPDATE task_assignments SET attempts = 0 WHERE attempts IS NULL");
+            // Reuniones — links extra de noticias
+            safeExecute("ALTER TABLE reuniones ADD COLUMN IF NOT EXISTS news_links_extra_json TEXT DEFAULT '[]'");
 
-            // Ensure status column accepts APPROVED (expand to VARCHAR(20) if needed)
-            safeExecute("ALTER TABLE task_assignments ALTER COLUMN status TYPE VARCHAR(20)");
-
-            // Drop any CHECK constraint on status that might block APPROVED
-            safeExecute("ALTER TABLE task_assignments DROP CONSTRAINT IF EXISTS task_assignments_status_check");
-
-            // tasks: questions_json (TEXT)
-            safeExecute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS questions_json TEXT");
-
-            // tasks: ensure legacy status column also accepts APPROVED
-            safeExecute("ALTER TABLE tasks ALTER COLUMN status TYPE VARCHAR(20)");
-            safeExecute("ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_status_check");
-
-            // users: profile columns (legajo, carrera, tipo_usuario)
-            safeExecute("ALTER TABLE users ADD COLUMN IF NOT EXISTS legajo VARCHAR(20)");
-            safeExecute("ALTER TABLE users ADD COLUMN IF NOT EXISTS carrera VARCHAR(150)");
-            safeExecute("ALTER TABLE users ADD COLUMN IF NOT EXISTS tipo_usuario VARCHAR(20)");
+            // Tareas
+            safeExecute("ALTER TABLE tareas ADD COLUMN IF NOT EXISTS questions_json TEXT");
+            safeExecute("ALTER TABLE tareas ADD COLUMN IF NOT EXISTS links_extra_json TEXT DEFAULT '[]'");
+            safeExecute("ALTER TABLE tareas ALTER COLUMN estado TYPE VARCHAR(20)");
+            safeExecute("ALTER TABLE tareas DROP CONSTRAINT IF EXISTS tareas_estado_check");
 
             log.info("Migración de columnas completada.");
         } catch (Exception ex) {
-            // En H2 (dev) el IF NOT EXISTS puede no funcionar — no es crítico
-            log.warn("Migración de quiz columns (no crítico): {}", ex.getMessage());
+            log.warn("Migración de columnas (no crítico): {}", ex.getMessage());
         }
     }
 
@@ -151,4 +126,3 @@ public class DataInitializer implements ApplicationRunner {
         }
     }
 }
-

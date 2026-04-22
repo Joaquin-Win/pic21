@@ -1,15 +1,13 @@
 package com.pic21.service;
 
-import com.pic21.domain.Attendance;
-import com.pic21.domain.Meeting;
-import com.pic21.domain.MeetingStatus;
-import com.pic21.domain.User;
+import com.pic21.domain.*;
+import com.pic21.dto.request.AttendanceRequest;
 import com.pic21.dto.response.AttendanceResponse;
 import com.pic21.exception.BusinessException;
 import com.pic21.exception.ResourceNotFoundException;
-import com.pic21.repository.AttendanceRepository;
-import com.pic21.repository.MeetingRepository;
-import com.pic21.repository.UserRepository;
+import com.pic21.repository.AsistenciaRepository;
+import com.pic21.repository.ReunionRepository;
+import com.pic21.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,103 +17,79 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Servicio de asistencias con las reglas de negocio del módulo.
+ * Servicio de asistencias (UML v8).
  *
  * Reglas:
- *   1. Solo se puede registrar asistencia si la reunión está ACTIVA.
+ *   1. Solo se puede registrar asistencia si la reunión está EN_CURSO.
  *   2. Un usuario no puede registrar más de una asistencia por reunión.
- *   3. El registro "self" usa el usuario autenticado del JWT.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AttendanceService {
 
-    private final AttendanceRepository attendanceRepository;
-    private final MeetingRepository meetingRepository;
-    private final UserRepository userRepository;
+    private final AsistenciaRepository asistenciaRepository;
+    private final ReunionRepository reunionRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    // -----------------------------------------------------------------------
-    // Auto-registro — cualquier usuario autenticado
-    // -----------------------------------------------------------------------
-
-    /**
-     * Registra la asistencia del usuario autenticado a una reunión.
-     * Los datos del formulario (legajo, materia) se guardan con el registro.
-     */
     @Transactional
-    public AttendanceResponse registerSelf(Long meetingId, String username,
-                                           com.pic21.dto.request.AttendanceRequest request) {
-        Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reunión", meetingId));
+    public AttendanceResponse registerSelf(Long reunionId, String username, AttendanceRequest request) {
+        Reunion reunion = reunionRepository.findById(reunionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reunión", reunionId));
 
-        if (meeting.getStatus() != MeetingStatus.ACTIVA) {
+        if (reunion.getEstado() != EstadoReunion.EN_CURSO) {
             throw new BusinessException(
-                    "Solo se puede registrar asistencia cuando la reunión está ACTIVA. " +
-                    "Estado actual: " + meeting.getStatus());
+                    "Solo se puede registrar asistencia cuando la reunión está EN_CURSO. " +
+                    "Estado actual: " + reunion.getEstado());
         }
 
-        User user = userRepository.findByUsernameIgnoreCase(username)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Usuario no encontrado: " + username));
+        Usuario usuario = usuarioRepository.findByUsernameIgnoreCase(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + username));
 
-        if (attendanceRepository.existsByMeetingAndUser(meeting, user)) {
+        if (asistenciaRepository.existsByReunionAndUsuario(reunion, usuario)) {
             throw new BusinessException(
-                    "Ya registraste tu asistencia en la reunión '"
-                    + meeting.getTitle() + "'. No podés registrarte dos veces.");
+                    "Ya registraste tu asistencia en '" + reunion.getTitulo() + "'. No podés registrarte dos veces.");
         }
 
-        Attendance attendance = Attendance.builder()
-                .meeting(meeting)
-                .user(user)
-                .legajo(request != null ? request.getLegajo() : null)
-                .carrera(request != null ? request.getCarrera() : null)
-                .tipoUsuario(request != null ? request.getTipoUsuario() : null)
+        Asistencia asistencia = Asistencia.builder()
+                .reunion(reunion)
+                .usuario(usuario)
+                .presente(request != null && request.isPresente())
                 .build();
 
-        Attendance saved = attendanceRepository.save(attendance);
-        log.info("Asistencia registrada: user='{}' meeting='{}' legajo='{}' carrera='{}'",
-                username, meeting.getTitle(),
-                saved.getLegajo(), saved.getCarrera());
+        Asistencia saved = asistenciaRepository.save(asistencia);
+        log.info("Asistencia registrada: user='{}' reunion='{}' presente={}",
+                username, reunion.getTitulo(), saved.isPresente());
 
         return mapToResponse(saved);
     }
 
-
-    // -----------------------------------------------------------------------
-    // Consulta por reunión — ADMIN / PROFESOR / AYUDANTE
-    // (la seguridad se aplica en el Controller con @PreAuthorize)
-    // -----------------------------------------------------------------------
-
     @Transactional(readOnly = true)
-    public List<AttendanceResponse> findByMeeting(Long meetingId) {
-        Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reunión", meetingId));
+    public List<AttendanceResponse> findByReunion(Long reunionId) {
+        Reunion reunion = reunionRepository.findById(reunionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reunión", reunionId));
 
-        return attendanceRepository.findByMeetingWithDetails(meeting)
+        return asistenciaRepository.findByReunionWithDetails(reunion)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
+    private AttendanceResponse mapToResponse(Asistencia a) {
+        String email = a.getUsuario().getCredencial() != null
+                ? a.getUsuario().getCredencial().getEmail() : null;
 
-    private AttendanceResponse mapToResponse(Attendance a) {
         return AttendanceResponse.builder()
                 .id(a.getId())
-                .meetingId(a.getMeeting().getId())
-                .meetingTitle(a.getMeeting().getTitle())
-                .userId(a.getUser().getId())
-                .username(a.getUser().getUsername())
-                .firstName(a.getUser().getFirstName())
-                .lastName(a.getUser().getLastName())
-                .email(a.getUser().getEmail())
-                .legajo(a.getLegajo())
-                .carrera(a.getCarrera())
-                .tipoUsuario(a.getTipoUsuario())
-                .registeredAt(a.getRegisteredAt())
+                .reunionId(a.getReunion().getId())
+                .reunionTitulo(a.getReunion().getTitulo())
+                .usuarioId(a.getUsuario().getId())
+                .username(a.getUsuario().getUsername())
+                .nombre(a.getUsuario().getNombre())
+                .apellido(a.getUsuario().getApellido())
+                .email(email)
+                .presente(a.isPresente())
+                .fechaRegistro(a.getFechaRegistro())
                 .build();
     }
 }

@@ -36,7 +36,9 @@ public class CorsConfig {
         List<String> allowedOrigins = new ArrayList<>(List.of(
                 "http://localhost:*",
                 "http://127.0.0.1:*",
-                "null"                          // file:// protocol (desarrollo)
+                "https://*.ngrok-free.dev",
+                "https://*.ngrok.io",
+                "https://*.ngrok.app"
         ));
 
         // Agregar el origen de producción (Fly.io u otro configurado por env var)
@@ -50,7 +52,13 @@ public class CorsConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
         // Headers permitidos en las requests
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With"));
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "X-Requested-With",
+                "ngrok-skip-browser-warning"
+        ));
 
         // Headers expuestos en la response
         config.setExposedHeaders(List.of("Authorization"));

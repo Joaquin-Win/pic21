@@ -58,8 +58,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/auth/register-public").permitAll()
                 // Error endpoint — necesario para GlobalExceptionHandler
                 .requestMatchers("/error").permitAll()
-                // H2 Console (solo desarrollo)
-                .requestMatchers("/h2-console/**").permitAll()
+                // H2 Console — REMOVED from production security chain (was: .requestMatchers("/h2-console/**").permitAll())
                 // Frontend estático — index.html, CSS, JS, imágenes, favicon
                 .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/img/**",
                                  "/*.ico", "/*.png", "/*.svg").permitAll()

@@ -13,15 +13,15 @@ const MeetingDetailPage = (() => {
 
   async function loadDetail(container, meetingId) {
     try {
-      const isAdminOrProf = AuthService.isAdmin() || AuthService.isProfesor();
+      const isAdminOrDirector = AuthService.isAdmin() || AuthService.isDirector();
       const [meeting, attendances, myAssignments] = await Promise.all([
         Api.get(`/meetings/${meetingId}`),
-        isAdminOrProf ? Api.get(`/attendances/meeting/${meetingId}`) : Promise.resolve([]),
-        !isAdminOrProf ? Api.get('/tasks/my') : Promise.resolve([]),
+        isAdminOrDirector ? Api.get(`/attendances/meeting/${meetingId}`) : Promise.resolve([]),
+        !isAdminOrDirector ? Api.get('/tasks/my') : Promise.resolve([]),
       ]);
       currentMeeting = meeting;
       // Filter assignments for this meeting
-      const meetingAssignment = !isAdminOrProf
+      const meetingAssignment = !isAdminOrDirector
         ? (myAssignments || []).find(a => String(a.meetingId) === String(meetingId))
         : null;
       renderDetail(container, meeting, attendances, meetingAssignment);
@@ -32,10 +32,14 @@ const MeetingDetailPage = (() => {
   }
 
   function renderDetail(container, meeting, attendances, meetingAssignment) {
-    const isActiva    = meeting.status === 'ACTIVA';
-    const canManage   = AuthService.isStaff();
-    const isAdminOrProf = AuthService.isAdmin() || AuthService.isProfesor();
-    const canAttend   = isActiva;
+    const isEnCurso  = meeting.estado === 'EN_CURSO';
+    const isAdminOrDirector = AuthService.isAdmin() || AuthService.isDirector();
+    const canCreateTask = AuthService.isAdmin() || AuthService.isDirector();
+    const canAttend = isEnCurso
+      && !AuthService.isAdmin()
+      && !AuthService.isDirector()
+      && !AuthService.isProfesor()
+      && (AuthService.isEstudiante() || AuthService.isAyudante() || AuthService.isEgresado());
     const arr = Array.isArray(attendances) ? attendances : [];
 
     container.innerHTML = `
@@ -44,14 +48,14 @@ const MeetingDetailPage = (() => {
         <div style="display:flex;align-items:center;gap:1rem;">
           <button class="btn btn-secondary btn-sm" data-href="/meetings">← Volver</button>
           <div>
-            <h2>${escHtml(meeting.title)}</h2>
-            <p>${meeting.scheduledAt ? formatDate(meeting.scheduledAt) : ''} &nbsp;${statusBadge(meeting.status)}</p>
+            <h2>${escHtml(meeting.titulo)}</h2>
+            <p>${meeting.fechaInicio ? formatDate(meeting.fechaInicio) : ''} &nbsp;${statusBadge(meeting.estado)}</p>
           </div>
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
           ${canAttend ? `<button class="btn btn-success" id="btnAttend">✅ Registrar mi asistencia</button>` : ''}
-          ${isAdminOrProf ? `<button class="btn btn-secondary" id="btnExcel">📥 Exportar Excel</button>` : ''}
-          ${canManage && AuthService.isStaff() ? `<button class="btn btn-primary btn-sm" id="btnCreateTask">➕ Crear tarea</button>` : ''}
+          ${isAdminOrDirector ? `<button class="btn btn-secondary" id="btnExcel">📥 Exportar Excel</button>` : ''}
+          ${canCreateTask ? `<button class="btn btn-primary btn-sm" id="btnCreateTask">➕ Crear tarea</button>` : ''}
         </div>
       </div>
 
@@ -60,9 +64,9 @@ const MeetingDetailPage = (() => {
         <div class="card-body">
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
             <div><div class="text-xs" style="color:var(--text-muted);margin-bottom:.25rem;">LINK DE REUNIÓN</div>${meeting.accessCode ? `<a href="${escHtml(meeting.accessCode)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;">${escHtml(meeting.accessCode)}</a>` : '<span>—</span>'}</div>
-            <div><div class="text-xs" style="color:var(--text-muted);margin-bottom:.25rem;">CREADO POR</div><strong>${escHtml(meeting.createdBy || '—')}</strong></div>
-            <div><div class="text-xs" style="color:var(--text-muted);margin-bottom:.25rem;">DESCRIPCIÓN</div>${escHtml(meeting.description || 'Sin descripción')}</div>
-            ${canManage ? `<div><div class="text-xs" style="color:var(--text-muted);margin-bottom:.25rem;">ASISTENTES</div><strong>${arr.length}</strong></div>` : ''}
+            <div><div class="text-xs" style="color:var(--text-muted);margin-bottom:.25rem;">CREADO POR</div><strong>${escHtml(meeting.creadoPorUsername || '—')}</strong></div>
+            <div><div class="text-xs" style="color:var(--text-muted);margin-bottom:.25rem;">DESCRIPCIÓN</div>${escHtml(meeting.descripcion || 'Sin descripción')}</div>
+            ${isAdminOrDirector ? `<div><div class="text-xs" style="color:var(--text-muted);margin-bottom:.25rem;">ASISTENTES</div><strong>${arr.length}</strong></div>` : ''}
           </div>
         </div>
       </div>
@@ -74,27 +78,55 @@ const MeetingDetailPage = (() => {
         </div>
         <div class="card-body">
           <div style="display:grid;gap:1rem;">
-            <div style="display:flex;align-items:center;gap:.75rem;padding:.75rem;background:var(--bg-secondary);border-radius:8px;">
-              <span style="font-size:1.3rem;">🎥</span>
-              <div style="flex:1;">
-                <div style="font-weight:600;margin-bottom:.15rem;">Grabación de la reunión</div>
-                ${meeting.recordingLink ? `<a href="${escHtml(meeting.recordingLink)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;word-break:break-all;font-size:.9rem;">${escHtml(meeting.recordingLink)}</a>` : '<span style="color:var(--text-muted);font-size:.9rem;">Sin link aún</span>'}
+            ${meeting.recordingLink ? `
+            <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.75rem;background:var(--bg-secondary);border-radius:8px;">
+              <span style="font-size:1.3rem;flex-shrink:0;">🎥</span>
+              <div style="min-width:0;flex:1;">
+                <div style="font-weight:600;margin-bottom:.15rem;">Grabación</div>
+                <a href="${escHtml(meeting.recordingLink)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;word-break:break-all;overflow-wrap:anywhere;font-size:.9rem;display:block;">${escHtml(meeting.recordingLink)}</a>
               </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:.75rem;padding:.75rem;background:var(--bg-secondary);border-radius:8px;">
-              <span style="font-size:1.3rem;">📰</span>
-              <div style="flex:1;">
+            </div>` : ''}
+            ${meeting.presentacionLink ? `
+            <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.75rem;background:var(--bg-secondary);border-radius:8px;">
+              <span style="font-size:1.3rem;flex-shrink:0;">📊</span>
+              <div style="min-width:0;flex:1;">
+                <div style="font-weight:600;margin-bottom:.15rem;">Presentación</div>
+                <a href="${escHtml(meeting.presentacionLink)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;word-break:break-all;overflow-wrap:anywhere;font-size:.9rem;display:block;">${escHtml(meeting.presentacionLink)}</a>
+              </div>
+            </div>` : ''}
+            ${meeting.newsLink ? `
+            <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.75rem;background:var(--bg-secondary);border-radius:8px;">
+              <span style="font-size:1.3rem;flex-shrink:0;">📰</span>
+              <div style="min-width:0;flex:1;">
                 <div style="font-weight:600;margin-bottom:.15rem;">Noticias</div>
-                ${meeting.newsLink ? `<a href="${escHtml(meeting.newsLink)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;word-break:break-all;font-size:.9rem;">${escHtml(meeting.newsLink)}</a>` : '<span style="color:var(--text-muted);font-size:.9rem;">Sin link aún</span>'}
+                <a href="${escHtml(meeting.newsLink)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;word-break:break-all;overflow-wrap:anywhere;font-size:.9rem;display:block;">${escHtml(meeting.newsLink)}</a>
               </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:.75rem;padding:.75rem;background:var(--bg-secondary);border-radius:8px;">
-              <span style="font-size:1.3rem;">📝</span>
-              <div style="flex:1;">
-                <div style="font-weight:600;margin-bottom:.15rem;">Link de actividad de la reunión</div>
-                ${meeting.activityLink ? `<a href="${escHtml(meeting.activityLink)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;word-break:break-all;font-size:.9rem;">${escHtml(meeting.activityLink)}</a>` : '<span style="color:var(--text-muted);font-size:.9rem;">Sin link aún</span>'}
+            </div>` : ''}
+            ${(Array.isArray(meeting.newsLinksExtra) && meeting.newsLinksExtra.length) ? meeting.newsLinksExtra.map((l, i) => `
+            <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.75rem;background:var(--bg-secondary);border-radius:8px;">
+              <span style="font-size:1.3rem;flex-shrink:0;">📰</span>
+              <div style="min-width:0;flex:1;">
+                <div style="font-weight:600;margin-bottom:.15rem;">Noticia ${i + 1}</div>
+                <a href="${escHtml(l)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;word-break:break-all;overflow-wrap:anywhere;font-size:.9rem;display:block;">${escHtml(l)}</a>
               </div>
-            </div>
+            </div>`).join('') : ''}
+            ${meeting.activityLink ? `
+            <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.75rem;background:var(--bg-secondary);border-radius:8px;">
+              <span style="font-size:1.3rem;flex-shrink:0;">📝</span>
+              <div style="min-width:0;flex:1;">
+                <div style="font-weight:600;margin-bottom:.15rem;">Actividad</div>
+                <a href="${escHtml(meeting.activityLink)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;word-break:break-all;overflow-wrap:anywhere;font-size:.9rem;display:block;">${escHtml(meeting.activityLink)}</a>
+              </div>
+            </div>` : ''}
+            ${(Array.isArray(meeting.linksExtra) && meeting.linksExtra.length) ? meeting.linksExtra.map((l, i) => `
+            <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.75rem;background:var(--bg-secondary);border-radius:8px;">
+              <span style="font-size:1.3rem;flex-shrink:0;">🔗</span>
+              <div style="min-width:0;flex:1;">
+                <div style="font-weight:600;margin-bottom:.15rem;">Link extra ${i + 1}</div>
+                <a href="${escHtml(l)}" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline;word-break:break-all;overflow-wrap:anywhere;font-size:.9rem;display:block;">${escHtml(l)}</a>
+              </div>
+            </div>`).join('') : ''}
+            ${!meeting.recordingLink && !meeting.presentacionLink && !meeting.newsLink && !meeting.activityLink && !(meeting.linksExtra?.length) && !(meeting.newsLinksExtra?.length) ? '<p style="color:var(--text-muted);font-size:.9rem;">Sin links disponibles aún.</p>' : ''}
           </div>
         </div>
       </div>
@@ -104,7 +136,7 @@ const MeetingDetailPage = (() => {
       <div id="recoverySection"></div>
 
       <!-- Attendances table (admin/profesor only) -->
-      ${isAdminOrProf ? `
+      ${isAdminOrDirector ? `
       <div class="card">
         <div class="card-header">
           <span class="card-title">👥 Lista de asistencias</span>
@@ -118,7 +150,7 @@ const MeetingDetailPage = (() => {
 
     // Bind attend button — open form modal
     document.getElementById('btnAttend')?.addEventListener('click', () => {
-      openAttendanceFormModal(meeting, canManage, container);
+      openAttendanceFormModal(meeting, isAdminOrDirector, container);
     });
 
 
@@ -128,7 +160,7 @@ const MeetingDetailPage = (() => {
       btn.disabled = true;
       try {
         const blob = await Api.get(`/attendances/meeting/${meeting.id}/excel`, { binary: true });
-        downloadBlob(blob, `asistencias_${meeting.id}_${meeting.title.replace(/\s+/g,'_')}.xlsx`);
+        downloadBlob(blob, `asistencias_${meeting.id}_${(meeting.titulo||'reunion').replace(/\s+/g,'_')}.xlsx`);
         Toast.success('Excel descargado', '');
       } catch (err) {
         Toast.error('Error al exportar', err.message);
@@ -139,7 +171,7 @@ const MeetingDetailPage = (() => {
 
     // Bind create task
     document.getElementById('btnCreateTask')?.addEventListener('click', () => {
-      openCreateTaskModal(meeting.id, meeting.title);
+      openCreateTaskModal(meeting.id, meeting.titulo);
     });
 
     // Render recovery section for students/egresados
@@ -151,7 +183,7 @@ const MeetingDetailPage = (() => {
     const section = document.getElementById('recoverySection');
     if (!section || !assignment) return;
 
-    if (assignment.status === 'APPROVED') {
+    if (assignment.estado === 'COMPLETADA' || assignment.status === 'COMPLETADA') {
       section.innerHTML = `
         <div class="card" style="margin-bottom:1.5rem;border-left:4px solid #10b981;">
           <div class="card-body" style="display:flex;align-items:center;gap:1rem;">
@@ -159,6 +191,20 @@ const MeetingDetailPage = (() => {
             <div>
               <div style="font-weight:600;color:#10b981;">Asistencia recuperada</div>
               <div style="color:var(--text-muted);font-size:.85rem;">Aprobaste el quiz con ${assignment.score}% — Tu asistencia fue registrada.</div>
+            </div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    if (assignment.estado === 'BLOQUEADA' || assignment.status === 'BLOQUEADA') {
+      section.innerHTML = `
+        <div class="card" style="margin-bottom:1.5rem;border-left:4px solid #ef4444;">
+          <div class="card-body" style="display:flex;align-items:center;gap:1rem;">
+            <span style="font-size:1.5rem;">⛔</span>
+            <div>
+              <div style="font-weight:600;color:#ef4444;">Recuperación cerrada</div>
+              <div style="color:var(--text-muted);font-size:.85rem;">Esta tarea fue bloqueada. Ya no podés rendir el quiz.</div>
             </div>
           </div>
         </div>`;
@@ -176,7 +222,7 @@ const MeetingDetailPage = (() => {
               <div style="font-weight:600;">Recuperar asistencia</div>
               <div style="color:var(--text-muted);font-size:.85rem;">
                 Realizá el quiz para recuperar tu asistencia a esta reunión.
-                ${assignment.attempts > 0 ? `Intentos: <strong>${assignment.attempts}</strong> | Último score: <strong>${assignment.score != null ? assignment.score + '%' : '—'}</strong>` : 'Necesitás 70% o más para aprobar.'}
+                ${(assignment.intentos ?? assignment.attempts ?? 0) > 0 ? `Intentos: <strong>${assignment.intentos ?? assignment.attempts ?? 0}</strong> | Último score: <strong>${assignment.score != null ? assignment.score + '%' : '—'}</strong>` : 'Necesitás 70% o más para aprobar.'}
               </div>
             </div>
           </div>
@@ -196,6 +242,13 @@ const MeetingDetailPage = (() => {
       Toast.error('Error', 'No se pudieron cargar las preguntas'); return;
     }
 
+    const materialLinks = Array.isArray(assignment.linksTarea) && assignment.linksTarea.length
+      ? assignment.linksTarea
+      : [assignment.linkTarea || assignment.link].filter(Boolean);
+    const materialHtml = materialLinks.length
+      ? materialLinks.map((l, i) => `<li style="margin-bottom:.35rem;"><a href="${escHtml(l)}" target="_blank" rel="noopener noreferrer">🔗 Link ${i + 1}</a></li>`).join('')
+      : '<li style="color:var(--text-muted)">No hay links cargados para esta tarea.</li>';
+
     const formHtml = questions.map((q, qi) => `
       <div style="margin-bottom:1.25rem;padding:1rem;background:var(--bg-secondary);border-radius:8px;">
         <p style="font-weight:600;margin-bottom:.5rem;">${qi + 1}. ${escHtml(q.question)}</p>
@@ -208,13 +261,29 @@ const MeetingDetailPage = (() => {
       </div>
     `).join('');
 
-    Modal.open(`📝 Quiz — ${escHtml(assignment.taskTitle)}`, `
+    Modal.open(`📝 Quiz — ${escHtml(assignment.taskTitle || assignment.tituloTarea || 'Tarea')}`, `
       <div style="max-height:60vh;overflow-y:auto;padding-right:.5rem;">
-        <p style="color:var(--text-muted);margin-bottom:1rem;font-size:.9rem;">
-          Respondé todas las preguntas. Necesitás <strong>70% o más</strong> para aprobar y recuperar tu asistencia.
-          ${assignment.attempts > 0 ? `<br>Intentos anteriores: <strong>${assignment.attempts}</strong> | Último score: <strong>${assignment.score != null ? assignment.score + '%' : '—'}</strong>` : ''}
-        </p>
-        <form id="recoveryQuizForm">
+        <div id="recoveryQuizStepMaterial">
+          <p style="color:var(--text-muted);margin-bottom:1rem;font-size:.9rem;">
+            Antes de responder el quiz, revisá el material de apoyo.
+          </p>
+          <ul style="padding-left:1.2rem;margin-bottom:1rem;">
+            ${materialHtml}
+          </ul>
+          <label style="display:flex;align-items:flex-start;gap:.5rem;cursor:pointer;margin-bottom:1rem;">
+            <input type="checkbox" id="recoveryQuizConfirmVideos" style="margin-top:3px;width:16px;height:16px;" />
+            <span style="font-size:.9rem;">Confirmo que revisé los videos/material de apoyo.</span>
+          </label>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="recoveryGoToQuizBtn">Continuar al quiz</button>
+          </div>
+        </div>
+        <form id="recoveryQuizForm" style="display:none;">
+          <p style="color:var(--text-muted);margin-bottom:1rem;font-size:.9rem;">
+            Respondé todas las preguntas. Necesitás <strong>70% o más</strong> para aprobar y recuperar tu asistencia.
+            ${(assignment.intentos ?? assignment.attempts ?? 0) > 0 ? `<br>Intentos anteriores: <strong>${assignment.intentos ?? assignment.attempts ?? 0}</strong> | Último score: <strong>${assignment.score != null ? assignment.score + '%' : '—'}</strong>` : ''}
+          </p>
           ${formHtml}
           <div class="form-actions">
             <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
@@ -223,6 +292,15 @@ const MeetingDetailPage = (() => {
         </form>
       </div>
     `, { persistent: true });
+
+    document.getElementById('recoveryGoToQuizBtn')?.addEventListener('click', () => {
+      if (!document.getElementById('recoveryQuizConfirmVideos')?.checked) {
+        Toast.warning('Confirmación requerida', 'Marcá que revisaste los videos/material antes de continuar.');
+        return;
+      }
+      document.getElementById('recoveryQuizStepMaterial').style.display = 'none';
+      document.getElementById('recoveryQuizForm').style.display = '';
+    });
 
     document.getElementById('recoveryQuizForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -240,13 +318,12 @@ const MeetingDetailPage = (() => {
         const result = await Api.post(`/task-assignments/${assignment.id}/submit`, { answers });
         Modal.close();
 
-        if (result.status === 'APPROVED') {
+        if (result.estado === 'COMPLETADA' || result.status === 'COMPLETADA') {
           Toast.success('🎉 ¡Quiz aprobado!', `Obtuviste ${result.score}% — Asistencia recuperada`);
         } else {
           Toast.warning('No aprobado', `Obtuviste ${result.score}%. Necesitás 70% o más. Podés reintentar.`);
         }
 
-        // Refresh the detail page to update the recovery section
         loadDetail(container, meeting.id);
       } catch(err) {
         Toast.error('Error', err.message);
@@ -265,10 +342,10 @@ const MeetingDetailPage = (() => {
             ${arr.map((a, i) => `
               <tr>
                 <td>${i + 1}</td>
-                <td>${escHtml(a.firstName || a.user?.firstName || '—')}</td>
-                <td>${escHtml(a.lastName  || a.user?.lastName  || '—')}</td>
-                <td>${escHtml(a.email || '—')}</td>
-                <td>${formatDate(a.registeredAt)}</td>
+                <td>${escHtml(a.nombre   || a.user?.nombre   || '—')}</td>
+                <td>${escHtml(a.apellido || a.user?.apellido || '—')}</td>
+                <td>${escHtml(a.email || a.credencial?.email || '—')}</td>
+                <td>${formatDate(a.fechaRegistro || a.registeredAt)}</td>
               </tr>`).join('')}
           </tbody>
         </table>
@@ -319,6 +396,28 @@ const MeetingDetailPage = (() => {
   function openCreateTaskModal(meetingId, meetingTitle) {
     let mdQuestions = [];
     for (let i = 0; i < 5; i++) mdQuestions.push({ question: '', options: ['', '', ''], correct: 0 });
+    let createLinks = [''];
+
+    function renderMdTaskLinks() {
+      const c = document.getElementById('mdTaskLinksContainer');
+      if (!c) return;
+      c.innerHTML = createLinks.map((link, i) => `
+        <div style="display:flex;gap:.5rem;margin-bottom:.35rem;">
+          <input class="form-control md-task-link" data-li="${i}" value="${escHtml(link)}" type="url" maxlength="500" placeholder="https://..." />
+          <button type="button" class="btn btn-secondary btn-sm md-task-link-rm" data-li="${i}" style="color:#ef4444;">✕</button>
+        </div>
+      `).join('');
+      c.querySelectorAll('.md-task-link').forEach(input => {
+        input.addEventListener('input', () => { createLinks[Number(input.dataset.li)] = input.value; });
+      });
+      c.querySelectorAll('.md-task-link-rm').forEach(btn => {
+        btn.addEventListener('click', () => {
+          createLinks.splice(Number(btn.dataset.li), 1);
+          if (!createLinks.length) createLinks.push('');
+          renderMdTaskLinks();
+        });
+      });
+    }
 
     function renderMdQuiz() {
       const c = document.getElementById('mdQuizBuilder');
@@ -355,9 +454,9 @@ const MeetingDetailPage = (() => {
       c.querySelectorAll('.mdq-addopt').forEach(e => e.addEventListener('click', () => { mdQuestions[+e.dataset.qi].options.push(''); renderMdQuiz(); }));
     }
 
-    Modal.open(`Crear Quiz — ${meetingTitle}`, `
+    Modal.open(`Crear tarea con Quiz — ${escHtml(meetingTitle)}`, `
       <p class="text-sm" style="color:var(--text-muted);margin-bottom:.75rem;">
-        Se asignará automáticamente a los estudiantes que <strong>no asistieron</strong>.
+        Se asignará automáticamente a quienes <strong>no asistieron</strong> y tengan rol recuperable (estudiante, ayudante, egresado).
       </p>
       <div class="form-group">
         <label class="form-label">Título *</label>
@@ -367,16 +466,27 @@ const MeetingDetailPage = (() => {
         <label class="form-label">Descripción (opcional)</label>
         <textarea class="form-control" id="tDesc" placeholder="Instrucciones..." rows="2"></textarea>
       </div>
-      <div style="margin:.75rem 0 .35rem;"><strong style="font-size:.95rem;">📝 Preguntas (5-20)</strong></div>
+      <div class="form-group">
+        <label class="form-label">Links de apoyo (opcionales)</label>
+        <div id="mdTaskLinksContainer"></div>
+        <button type="button" class="btn btn-secondary btn-sm" id="mdAddTaskLink" style="margin-top:.35rem;font-size:.8rem;">+ Agregar link</button>
+      </div>
+      <div style="margin:.75rem 0 .35rem;"><strong style="font-size:.95rem;">📝 Preguntas del quiz (mín. 5 — máx. 20)</strong></div>
       <div id="mdQuizBuilder" style="max-height:40vh;overflow-y:auto;"></div>
       <button type="button" class="btn btn-secondary btn-sm" id="mdAddQ" style="margin-top:.5rem;">➕ Agregar pregunta</button>
       <div class="form-actions" style="margin-top:.75rem;">
         <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="saveTaskBtn">✅ Crear quiz</button>
+        <button type="button" class="btn btn-primary" id="saveTaskBtn">✅ Crear y asignar</button>
       </div>
     `);
 
+    renderMdTaskLinks();
     renderMdQuiz();
+
+    document.getElementById('mdAddTaskLink').addEventListener('click', () => {
+      createLinks.push('');
+      renderMdTaskLinks();
+    });
 
     document.getElementById('mdAddQ').addEventListener('click', () => {
       if (mdQuestions.length >= 20) { Toast.warning('Máximo 20 preguntas',''); return; }
@@ -388,9 +498,10 @@ const MeetingDetailPage = (() => {
       const btn = document.getElementById('saveTaskBtn');
       const title = document.getElementById('tTitle').value.trim();
       const desc = document.getElementById('tDesc').value.trim();
+      const links = createLinks.map(l => (l || '').trim()).filter(Boolean);
       if (!title) { Toast.warning('El título es obligatorio',''); return; }
-      // Validate quiz
       if (mdQuestions.length < 5) { Toast.warning('Mínimo 5 preguntas', `Tenés ${mdQuestions.length}`); return; }
+      if (mdQuestions.length > 20) { Toast.warning('Máximo 20 preguntas', ''); return; }
       for (let i = 0; i < mdQuestions.length; i++) {
         const q = mdQuestions[i];
         if (!q.question.trim()) { Toast.warning(`Pregunta ${i+1}`, 'Falta el enunciado'); return; }
@@ -398,19 +509,23 @@ const MeetingDetailPage = (() => {
         for (let j = 0; j < q.options.length; j++) {
           if (!q.options[j].trim()) { Toast.warning(`Pregunta ${i+1}`, `Opción ${j+1} vacía`); return; }
         }
+        if (q.correct < 0 || q.correct >= q.options.length) { Toast.warning(`Pregunta ${i+1}`, 'Seleccioná la respuesta correcta'); return; }
       }
       btn.disabled = true; btn.textContent = 'Creando...';
       try {
         const result = await Api.post(`/tasks/meeting/${meetingId}`, {
-          title, description: desc || null, link: null,
+          title,
+          description: desc || null,
+          link: links[0] || null,
+          links,
           questionsJson: JSON.stringify(mdQuestions),
         });
         Modal.close();
         const count = Array.isArray(result) ? result.length : 1;
-        Toast.success('Quiz creado', `Asignado a ${count} estudiante(s) ausente(s)`);
+        Toast.success('Tarea creada', `Quiz asignado a ${count} usuario(s) ausente(s)`);
       } catch (err) {
         Toast.error('Error', err.message);
-        btn.disabled = false; btn.textContent = '✅ Crear quiz';
+        btn.disabled = false; btn.textContent = '✅ Crear y asignar';
       }
     });
   }
@@ -419,20 +534,20 @@ const MeetingDetailPage = (() => {
   function openAttendanceFormModal(meeting, canManage, container) {
     const user = AuthService.getUser();
 
-    Modal.open(`Registrar asistencia \u2014 ${meeting.title}`, `
+    Modal.open(`Registrar asistencia \u2014 ${meeting.titulo}`, `
       <form id="attendDetailForm">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
           <div class="form-group">
             <label class="form-label">Nombre</label>
-            <input class="form-control" id="adNombre" value="${escHtml(user?.firstName || '')}" readonly />
+            <input class="form-control" id="adNombre" value="${escHtml(user?.nombre || '')}" readonly />
           </div>
           <div class="form-group">
             <label class="form-label">Apellido</label>
-            <input class="form-control" id="adApellido" value="${escHtml(user?.lastName || '')}" readonly />
+            <input class="form-control" id="adApellido" value="${escHtml(user?.apellido || '')}" readonly />
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Correo SoySiglo / Correo electr\u00f3nico</label>
+          <label class="form-label">Correo electr\u00f3nico</label>
           <input class="form-control" id="adEmail" value="${escHtml(user?.email || '')}" readonly />
         </div>
         <div class="form-actions">
@@ -447,11 +562,7 @@ const MeetingDetailPage = (() => {
       btn.disabled = true;
       btn.textContent = 'Registrando...';
       try {
-        await Api.post(`/attendances/meeting/${meeting.id}/self`, {
-          nombre:              document.getElementById('adNombre').value.trim(),
-          apellido:            document.getElementById('adApellido').value.trim(),
-          correoInstitucional: document.getElementById('adEmail').value.toLowerCase().trim(),
-        });
+        await Api.post(`/attendances/meeting/${meeting.id}/self`, { presente: true });
         Modal.close();
         Toast.success('\u2705 Asistencia registrada', meeting.title);
         const [fresh, freshAtt] = await Promise.all([

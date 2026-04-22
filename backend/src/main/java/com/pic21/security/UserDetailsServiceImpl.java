@@ -1,8 +1,7 @@
 package com.pic21.security;
 
-import com.pic21.domain.Role;
-import com.pic21.domain.User;
-import com.pic21.repository.UserRepository;
+import com.pic21.domain.Usuario;
+import com.pic21.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,35 +14,35 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Implementación de UserDetailsService para Spring Security.
- * Carga el usuario desde la base de datos por nombre de usuario.
+ * Implementación de UserDetailsService para Spring Security (UML v8).
+ * Carga el usuario desde la base de datos por username o email de Credencial.
  */
 @Service
 @RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-    private final UserRepository userRepository;
+    private final UsuarioRepository usuarioRepository;
 
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        String normalizedUsername = username.toLowerCase().trim();
-        User user = userRepository.findByUsernameIgnoreCase(normalizedUsername)
-                .or(() -> userRepository.findByEmailIgnoreCase(normalizedUsername))
-                .orElseThrow(() -> new UsernameNotFoundException(
-                        "Usuario no encontrado: " + normalizedUsername));
+        String normalized = username.toLowerCase().trim();
 
-        // Convertir roles a GrantedAuthority con prefijo ROLE_
-        List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
-                .map(Role::getName)
-                .map(roleName -> new SimpleGrantedAuthority("ROLE_" + roleName.name()))
+        Usuario usuario = usuarioRepository.findByUsernameIgnoreCase(normalized)
+                .or(() -> usuarioRepository.findByCredencial_EmailIgnoreCase(normalized))
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "Usuario no encontrado: " + normalized));
+
+        // Roles del enum Rol → GrantedAuthority con prefijo ROLE_
+        List<SimpleGrantedAuthority> authorities = usuario.getRoles().stream()
+                .map(rol -> new SimpleGrantedAuthority("ROLE_" + rol.name()))
                 .collect(Collectors.toList());
 
         return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getUsername())
-                .password(user.getPassword())
+                .username(usuario.getUsername())
+                .password(usuario.getCredencial().getPasswordHash())
                 .authorities(authorities)
-                .disabled(!user.isEnabled())
+                .disabled(!usuario.isActivo())
                 .accountLocked(false)
                 .credentialsExpired(false)
                 .build();

@@ -14,11 +14,11 @@ import java.util.List;
 public class AuthResponse {
 
     private String token;
-    private String type;         // "Bearer"
+    private String type;       // "Bearer"
     private Long id;
     private String username;
+    private String nombre;
+    private String apellido;
     private String email;
-    private String firstName;
-    private String lastName;
     private List<String> roles;
 }

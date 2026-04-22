@@ -78,7 +78,7 @@ const DashboardPage = (() => {
       </div>
       <div class="stat-card">
         <div class="stat-icon muted">🗂️</div>
-        <div><div class="stat-value">${(d.meetingStats || []).filter(m => m.meetingStatus === 'ACTIVA').length}</div><div class="stat-label">Reuniones activas ahora</div></div>
+        <div><div class="stat-value">${(d.meetingStats || []).filter(m => m.meetingStatus === 'EN_CURSO').length}</div><div class="stat-label">Reuniones activas ahora</div></div>
       </div>
     `);
   }
@@ -90,7 +90,7 @@ const DashboardPage = (() => {
     const pcts   = stats.map(s => +(s.attendancePercentage || 0).toFixed(1));
 
     // Status counts for donut
-    const statusCount = { NO_INICIADA: 0, ACTIVA: 0, BLOQUEADA: 0 };
+    const statusCount = { NO_INICIADA: 0, EN_CURSO: 0, BLOQUEADA: 0 };
     stats.forEach(s => { if (statusCount[s.meetingStatus] !== undefined) statusCount[s.meetingStatus]++; });
 
     // Destroy old charts
@@ -133,9 +133,9 @@ const DashboardPage = (() => {
       donutChart = new Chart(donutCtx, {
         type: 'doughnut',
         data: {
-          labels: ['No iniciadas', 'Activas', 'Bloqueadas'],
+          labels: ['No iniciadas', 'En curso', 'Bloqueadas'],
           datasets: [{
-            data: [statusCount.NO_INICIADA, statusCount.ACTIVA, statusCount.BLOQUEADA],
+            data: [statusCount.NO_INICIADA, statusCount.EN_CURSO, statusCount.BLOQUEADA],
             backgroundColor: ['rgba(111,112,115,.6)', 'rgba(1,169,143,.75)', 'rgba(239,68,68,.65)'],
             borderWidth: 2,
             borderColor: isDark ? '#1a2e28' : '#fff',

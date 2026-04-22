@@ -93,11 +93,13 @@ input, select, textarea { font-family: inherit; }
   transition: width var(--transition);
   overflow: hidden;
 }
-.sidebar.collapsed { width: var(--sidebar-w-collapsed); }
+.sidebar.collapsed { width: 0; }
 .sidebar.collapsed .brand-name,
 .sidebar.collapsed .nav-label,
-.sidebar.collapsed .sidebar-footer .user-info span,
-.sidebar.collapsed .btn-logout span { display: none; }
+.sidebar.collapsed .nav-section-label,
+.sidebar.collapsed .sidebar-footer,
+.sidebar.collapsed .sidebar-header,
+.sidebar.collapsed .sidebar-nav { visibility: hidden; opacity: 0; }
 .sidebar.collapsed .sidebar-toggle { transform: rotate(180deg); }
 
 .sidebar-header {
@@ -235,7 +237,7 @@ input, select, textarea { font-family: inherit; }
   min-height: 100vh;
   transition: margin-left var(--transition);
 }
-.sidebar.collapsed ~ .main-wrapper { margin-left: var(--sidebar-w-collapsed); }
+.sidebar.collapsed ~ .main-wrapper { margin-left: 0; }
 
 /* ── Topbar ─────────────────────────────────────────────────── */
 .topbar {
@@ -262,7 +264,10 @@ input, select, textarea { font-family: inherit; }
   background: none;
   border: none;
   padding: .3rem;
+  cursor: pointer;
 }
+/* Show hamburger on desktop when sidebar is collapsed */
+.sidebar.collapsed ~ .main-wrapper .hamburger { display: flex; }
 .hamburger span {
   display: block;
   width: 22px; height: 2px;
@@ -663,12 +668,20 @@ textarea.form-control { resize: vertical; min-height: 90px; }
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
-    transition: transform var(--transition), width var(--transition);
+    transition: transform var(--transition);
+    width: var(--sidebar-w) !important;
   }
   .sidebar.mobile-open {
     transform: translateX(0);
-    width: var(--sidebar-w);
   }
+  /* When mobile drawer is open, show everything even if 'collapsed' was on */
+  .sidebar.mobile-open .sidebar-header,
+  .sidebar.mobile-open .sidebar-nav,
+  .sidebar.mobile-open .sidebar-footer,
+  .sidebar.mobile-open .nav-section-label,
+  .sidebar.mobile-open .brand-name,
+  .sidebar.mobile-open .nav-label { visibility: visible !important; opacity: 1 !important; display: flex !important; }
+  .sidebar-toggle { display: none !important; }
   .main-wrapper { margin-left: 0 !important; }
   .hamburger { display: flex; }
   .page-content { padding: 1rem .75rem; }

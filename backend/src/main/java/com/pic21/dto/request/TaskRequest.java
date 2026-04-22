@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * DTO de entrada para la creación de una tarea.
  *
@@ -27,6 +29,9 @@ public class TaskRequest {
      */
     @Size(max = 500, message = "El link no puede superar los 500 caracteres")
     private String link;
+
+    /** Lista opcional de links de apoyo. */
+    private List<String> links;
 
     /**
      * JSON con las preguntas del quiz multiple choice.

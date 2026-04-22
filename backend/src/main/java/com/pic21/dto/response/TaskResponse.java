@@ -1,6 +1,6 @@
 package com.pic21.dto.response;
 
-import com.pic21.domain.TaskStatus;
+import com.pic21.domain.EstadoTarea;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -8,8 +8,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Respuesta con los datos de una tarea general.
- * Incluye estadísticas de asignaciones y opcionalmente la lista de asignados.
+ * Respuesta de una tarea general (UML v8).
  */
 @Getter
 @Builder
@@ -17,25 +16,23 @@ public class TaskResponse {
 
     private Long id;
 
-    private Long meetingId;
-    private String meetingTitle;
+    private Long reunionId;
+    private String reunionTitulo;
 
-    private String title;
-    private String description;
+    private String titulo;
+    private String descripcion;
     private String link;
+    private List<String> links;
     private String questionsJson;
+    private EstadoTarea estado;
 
-    private Long createdById;
-    private String createdByUsername;
+    private Long creadoPorId;
+    private String creadoPorUsername;
 
     private LocalDateTime createdAt;
 
-    /** Total de usuarios asignados a esta tarea. */
-    private long assignmentCount;
+    private long totalAsignaciones;
+    private long pendientes;
 
-    /** Cuántos tienen estado PENDING. */
-    private long pendingCount;
-
-    /** Lista de asignaciones (incluida en vistas admin/professor). */
-    private List<TaskAssignmentResponse> assignments;
+    private List<TaskAssignmentResponse> asignaciones;
 }
