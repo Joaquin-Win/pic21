@@ -11,9 +11,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Sirve los archivos estáticos del frontend que están en B:\java\asistencia\frontend
+        // Sirve los archivos estáticos del frontend desde classpath (empaquetados en el JAR)
         registry.addResourceHandler("/**")
-                .addResourceLocations("file:///B:/java/asistencia/frontend/");
+                .addResourceLocations("classpath:/static/");
     }
 
     @Override
