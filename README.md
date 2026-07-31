@@ -36,7 +36,7 @@ Sistema web para gestionar reuniones académicas, registrar asistencias, asignar
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/TU_USUARIO/pic21.git
+git clone https://github.com/Joaquin-Win/pic21.git
 cd pic21
 ```
 
