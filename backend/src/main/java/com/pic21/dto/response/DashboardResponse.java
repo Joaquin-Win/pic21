@@ -8,6 +8,7 @@
  */
 package com.pic21.dto.response;
 import lombok.Builder;
+import lombok.Getter;
 
 import com.pic21.dto.response.DashboardResponse;
 import java.util.List;
