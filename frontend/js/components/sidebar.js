@@ -24,6 +24,7 @@ const Sidebar = (() => {
       section: 'Gestión',
       items: [
         { label: 'Reuniones',             href: '/meetings', icon: '📅', roles: ALL_ROLES },
+        { label: 'Noticias',              href: '/news',     icon: '📰', roles: ALL_ROLES },
         { label: 'Recuperar asistencia',  href: '/tasks',    icon: '📋', roles: ALL_ROLES },
       ]
     },
@@ -31,7 +32,6 @@ const Sidebar = (() => {
       section: 'Administración',
       items: [
         { label: 'Usuarios', href: '/users', icon: '👥', roles: ['R04_ADMIN'] },
-        { label: 'Archivos', href: '/files', icon: '📁', roles: ['R04_ADMIN'] },
       ]
     },
   ];

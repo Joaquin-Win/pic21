@@ -13,9 +13,9 @@ const Router = (() => {
       '/dashboard':    { page: DashboardPage,     title: 'Dashboard',           roles: ['R04_ADMIN','R05_DIRECTOR'] },
       '/meetings':     { page: MeetingsPage,      title: 'Reuniones',           roles: ALL_ROLES },
       '/meetings/:id': { page: MeetingDetailPage, title: 'Detalle de reunión',  roles: ALL_ROLES },
+      '/news':         { page: NewsPage,          title: 'Noticias',            roles: ALL_ROLES },
       '/tasks':        { page: TasksPage,         title: 'Recuperar asistencia',roles: ALL_ROLES },
       '/users':        { page: UsersPage,         title: 'Usuarios',            roles: ['R04_ADMIN'] },
-      '/files':        { page: FilesPage,         title: 'Archivos',            roles: ['R04_ADMIN'] },
     };
   }
 
