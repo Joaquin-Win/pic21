@@ -1,28 +1,62 @@
+/*
+ * Decompiled with CFR 0.152.
+ * 
+ * Could not load the following classes:
+ *  com.pic21.domain.PerfilEstudiantil
+ *  com.pic21.domain.PerfilEstudiantil$PerfilEstudiantilBuilder
+ *  jakarta.persistence.Column
+ *  jakarta.persistence.Embeddable
+ */
 package com.pic21.domain;
 
-import jakarta.persistence.*;
-import lombok.*;
+import com.pic21.domain.PerfilEstudiantil;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 
-/**
- * Perfil estudiantil para roles Grupo B (UML v8):
- * R02_ESTUDIANTE, R06_AYUDANTE.
- *
- * Composición 0:1 con Usuario — embebido en tabla usuarios.
- */
 @Embeddable
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class PerfilEstudiantil {
-
-    @Column(name = "correo_institucional", length = 150)
+    @Column(name="correo_institucional", length=150)
     private String correoInstitucional;
-
-    @Column(name = "legajo", length = 20)
+    @Column(name="legajo", length=20)
     private String legajo;
-
-    @Column(name = "carrera", length = 150)
+    @Column(name="carrera", length=150)
     private String carrera;
+
+    public static PerfilEstudiantilBuilder builder() {
+        return new PerfilEstudiantilBuilder();
+    }
+
+    public String getCorreoInstitucional() {
+        return this.correoInstitucional;
+    }
+
+    public String getLegajo() {
+        return this.legajo;
+    }
+
+    public String getCarrera() {
+        return this.carrera;
+    }
+
+    public void setCorreoInstitucional(String correoInstitucional) {
+        this.correoInstitucional = correoInstitucional;
+    }
+
+    public void setLegajo(String legajo) {
+        this.legajo = legajo;
+    }
+
+    public void setCarrera(String carrera) {
+        this.carrera = carrera;
+    }
+
+    public PerfilEstudiantil() {
+    }
+
+    public PerfilEstudiantil(String correoInstitucional, String legajo, String carrera) {
+        this.correoInstitucional = correoInstitucional;
+        this.legajo = legajo;
+        this.carrera = carrera;
+    }
 }
+

@@ -1,40 +1,36 @@
+/*
+ * Decompiled with CFR 0.152.
+ * 
+ * Could not load the following classes:
+ *  com.pic21.controller.DashboardController
+ *  com.pic21.dto.response.DashboardResponse
+ *  com.pic21.service.DashboardService
+ *  org.springframework.http.ResponseEntity
+ *  org.springframework.web.bind.annotation.GetMapping
+ *  org.springframework.web.bind.annotation.RequestMapping
+ *  org.springframework.web.bind.annotation.RestController
+ */
 package com.pic21.controller;
 
 import com.pic21.dto.response.DashboardResponse;
 import com.pic21.service.DashboardService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Controlador del dashboard de estadísticas.
- *
- * Endpoints:
- *   GET /api/dashboard  → Estadísticas globales + desglose por reunión
- *                         Acceso: ADMIN, PROFESOR, AYUDANTE
- */
 @RestController
-@RequestMapping("/api/dashboard")
-@RequiredArgsConstructor
+@RequestMapping(value={"/api/dashboard"})
 public class DashboardController {
-
     private final DashboardService dashboardService;
 
-    /**
-     * Retorna las estadísticas del sistema:
-     * <ul>
-     *   <li>Total de reuniones</li>
-     *   <li>Total de asistencias registradas</li>
-     *   <li>Porcentaje global de asistencia</li>
-     *   <li>Desglose por reunión (asistentes, %, estado)</li>
-     * </ul>
-     *
-     * @return 200 OK con {@link DashboardResponse}
-     */
     @GetMapping
     public ResponseEntity<DashboardResponse> getDashboard() {
-        return ResponseEntity.ok(dashboardService.getDashboard());
+        return ResponseEntity.ok((Object)this.dashboardService.getDashboard());
+    }
+
+    public DashboardController(DashboardService dashboardService) {
+        this.dashboardService = dashboardService;
     }
 }
+

@@ -1,103 +1,87 @@
+/*
+ * Decompiled with CFR 0.152.
+ * 
+ * Could not load the following classes:
+ *  com.pic21.security.JwtTokenProvider
+ *  io.jsonwebtoken.Claims
+ *  io.jsonwebtoken.JwtException
+ *  io.jsonwebtoken.Jwts
+ *  io.jsonwebtoken.security.Keys
+ *  org.slf4j.Logger
+ *  org.slf4j.LoggerFactory
+ *  org.springframework.beans.factory.annotation.Value
+ *  org.springframework.security.core.Authentication
+ *  org.springframework.security.core.userdetails.UserDetails
+ *  org.springframework.stereotype.Component
+ */
 package com.pic21.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import lombok.extern.slf4j.Slf4j;
+import java.nio.charset.StandardCharsets;
+import java.security.Key;
+import java.util.Date;
+import javax.crypto.SecretKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-
-/**
- * Componente encargado de generar, validar y extraer información de los JWT.
- * Usa jjwt 0.12.x con algoritmo HS256.
- */
-@Slf4j
 @Component
 public class JwtTokenProvider {
-
-    @Value("${app.jwt.secret}")
+    private static final Logger log = LoggerFactory.getLogger(JwtTokenProvider.class);
+    @Value(value="${app.jwt.secret}")
     private String jwtSecret;
-
-    @Value("${app.jwt.expiration}")
+    @Value(value="${app.jwt.expiration}")
     private long jwtExpiration;
 
-    // ---------------------------------------------------------
-    // Key de firma
-    // ---------------------------------------------------------
-
     private SecretKey getSigningKey() {
-        // Usamos los bytes UTF-8 del secret (mínimo 256 bits = 32 chars para HS256)
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        return Keys.hmacShaKeyFor((byte[])this.jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
-    // ---------------------------------------------------------
-    // Generación de token
-    // ---------------------------------------------------------
-
     public String generateToken(Authentication authentication) {
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        return buildToken(userDetails.getUsername());
+        UserDetails userDetails = (UserDetails)authentication.getPrincipal();
+        return this.buildToken(userDetails.getUsername());
     }
 
     public String generateTokenFromUsername(String username) {
-        return buildToken(username);
+        return this.buildToken(username);
     }
 
     private String buildToken(String username) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpiration);
-
-        return Jwts.builder()
-                .subject(username)
-                .issuedAt(now)
-                .expiration(expiryDate)
-                .signWith(getSigningKey())
-                .compact();
+        Date expiryDate = new Date(now.getTime() + this.jwtExpiration);
+        return Jwts.builder().subject(username).issuedAt(now).expiration(expiryDate).signWith((Key)this.getSigningKey()).compact();
     }
 
-    // ---------------------------------------------------------
-    // Extracción de claims
-    // ---------------------------------------------------------
-
     public String getUsernameFromToken(String token) {
-        return getClaims(token).getSubject();
+        return this.getClaims(token).getSubject();
     }
 
     public Date getExpirationFromToken(String token) {
-        return getClaims(token).getExpiration();
+        return this.getClaims(token).getExpiration();
     }
 
     private Claims getClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        return (Claims)Jwts.parser().verifyWith(this.getSigningKey()).build().parseSignedClaims((CharSequence)token).getPayload();
     }
-
-    // ---------------------------------------------------------
-    // Validación
-    // ---------------------------------------------------------
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token);
+            Jwts.parser().verifyWith(this.getSigningKey()).build().parseSignedClaims((CharSequence)token);
             return true;
-        } catch (JwtException e) {
-            log.warn("JWT inválido: {}", e.getMessage());
-        } catch (IllegalArgumentException e) {
-            log.warn("JWT vacío o nulo: {}", e.getMessage());
+        }
+        catch (JwtException e) {
+            log.warn("JWT inv\u00e1lido: {}", (Object)e.getMessage());
+        }
+        catch (IllegalArgumentException e) {
+            log.warn("JWT vac\u00edo o nulo: {}", (Object)e.getMessage());
         }
         return false;
     }
 }
+

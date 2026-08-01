@@ -1,2 +1,6 @@
-/** Entidades JPA del dominio: User, Role, Meeting, Attendance, Task */
+/*
+ * Decompiled with CFR 0.152.
+ */
 package com.pic21.domain;
+
+

@@ -1,2 +1,6 @@
-/** Componentes de seguridad JWT: provider, filtros, UserDetailsService */
+/*
+ * Decompiled with CFR 0.152.
+ */
 package com.pic21.security;
+
+

@@ -1,2 +1,6 @@
-/** DTOs de response (salidas de la API) */
+/*
+ * Decompiled with CFR 0.152.
+ */
 package com.pic21.dto.response;
+
+

@@ -1,10 +1,13 @@
+/*
+ * Decompiled with CFR 0.152.
+ * 
+ * Could not load the following classes:
+ *  com.pic21.exception.ResourceNotFoundException
+ */
 package com.pic21.exception;
 
-/**
- * Excepción para recursos no encontrados (404).
- */
-public class ResourceNotFoundException extends RuntimeException {
-
+public class ResourceNotFoundException
+extends RuntimeException {
     public ResourceNotFoundException(String message) {
         super(message);
     }
@@ -13,3 +16,4 @@ public class ResourceNotFoundException extends RuntimeException {
         super(resourceName + " con id " + id + " no encontrado");
     }
 }
+
