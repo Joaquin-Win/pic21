@@ -106,7 +106,7 @@ const LoginPage = (() => {
 
         <div style="margin-bottom:1.5rem;text-align:center;">
           <p style="font-size:1.05rem;font-weight:600;color:var(--text-primary);margin-bottom:1.25rem;">
-            ¿Sos estudiante o egresado/docente?
+            ¿Qué tipo de usuario sos?
           </p>
 
           <!-- Botón Estudiante -->
@@ -117,6 +117,16 @@ const LoginPage = (() => {
                    font-weight:600;cursor:pointer;transition:all .2s;
                    display:flex;align-items:center;gap:.75rem;">
             🎓&nbsp; Estudiante
+          </button>
+
+          <!-- Botón Estudiante Posgrado -->
+          <button id="btnTipoEstudiantePosgrado"
+            style="width:100%;padding:1rem 1.25rem;margin-bottom:.75rem;
+                   background:linear-gradient(135deg,#7c3aed,#4c1d95);
+                   color:#fff;border:none;border-radius:12px;font-size:1rem;
+                   font-weight:600;cursor:pointer;transition:all .2s;
+                   display:flex;align-items:center;gap:.75rem;">
+            🎓&nbsp; Estudiante Posgrado
           </button>
 
           <!-- Botón Egresado/Docente -->
@@ -141,11 +151,12 @@ const LoginPage = (() => {
       </div>`;
 
     document.getElementById('btnTipoEstudiante')?.addEventListener('click', () => renderRegister('Estudiante'));
+    document.getElementById('btnTipoEstudiantePosgrado')?.addEventListener('click', () => renderRegister('EstudiantePosgrado'));
     document.getElementById('btnTipoEgresado')?.addEventListener('click', () => renderRegister('Egresado'));
     document.getElementById('btnBackFromTypeSelection')?.addEventListener('click', () => renderLogin());
 
     // Efectos hover en los botones de tipo
-    ['btnTipoEstudiante', 'btnTipoEgresado'].forEach(id => {
+    ['btnTipoEstudiante', 'btnTipoEstudiantePosgrado', 'btnTipoEgresado'].forEach(id => {
       const btn = document.getElementById(id);
       if (!btn) return;
       btn.addEventListener('mouseenter', () => { btn.style.transform = 'translateY(-2px)'; btn.style.boxShadow = '0 6px 20px rgba(0,0,0,.2)'; });
@@ -173,8 +184,12 @@ const LoginPage = (() => {
    * @param {string} tipoUsuario - 'Estudiante' o 'Egresado'
    */
   function renderRegister(tipoUsuario) {
-    const esEstudiante = tipoUsuario === 'Estudiante';
-    const labelTipo    = esEstudiante ? 'Estudiante' : 'Egresado/Docente';
+    const esEstudiante       = tipoUsuario === 'Estudiante';
+    const esEstudPosgrado    = tipoUsuario === 'EstudiantePosgrado';
+    const esEgresadoDocente  = !esEstudiante && !esEstudPosgrado;
+    const labelTipo = esEstudiante ? 'Estudiante'
+                    : esEstudPosgrado ? 'Estudiante Posgrado'
+                    : 'Egresado/Docente';
 
     _container.innerHTML = `
       <div class="auth-card">
@@ -218,11 +233,12 @@ const LoginPage = (() => {
               <option value="">Seleccioná...</option>
               <option value="Estudiante">Estudiante</option>
               <option value="Egresado">Egresado</option>
+              <option value="EstudiantePosgrado">Estudiante Posgrado</option>
             </select>
           </div>
 
-          <!-- Egresado / Profesor: elegir solo uno -->
-          ${!esEstudiante ? `
+          <!-- Egresado/Docente: elegir Egresado o Profesor (no aplica para Estudiante Posgrado) -->
+          ${esEgresadoDocente ? `
           <div class="form-group">
             <label class="form-label">Sos egresado o profesor? * <small style="font-weight:400;color:#888;">(solo una opción)</small></label>
             <div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.25rem;">
@@ -237,7 +253,7 @@ const LoginPage = (() => {
             </div>
           </div>` : ''}
 
-          <!-- DNI solo para Egresado/Docente | Legajo solo para Estudiante -->
+          <!-- DNI solo para Egresado/Docente/EstudPosgrado | Legajo solo para Estudiante -->
           ${esEstudiante ? `
           <div class="form-group">
             <label class="form-label">Legajo *</label>
@@ -365,7 +381,8 @@ const LoginPage = (() => {
     }
 
     const email = document.getElementById('regEmail').value.trim();
-    const esEstudiante = tipoUsuario === 'Estudiante';
+    const esEstudiante      = tipoUsuario === 'Estudiante';
+    const esEstudPosgrado   = tipoUsuario === 'EstudiantePosgrado';
 
     // ── Validación email por tipo ─────────────────
     if (!email) {
@@ -406,6 +423,7 @@ const LoginPage = (() => {
         return;
       }
     } else {
+      // Egresado, Docente y Estudiante Posgrado: requieren DNI
       const dniRaw = document.getElementById('regDni')?.value.trim() || '';
       if (!dniRaw) {
         showError('El DNI es obligatorio.');
@@ -415,7 +433,6 @@ const LoginPage = (() => {
         showError('El DNI debe tener exactamente 8 dígitos numéricos, sin puntos, comas ni espacios.');
         return;
       }
-      // Guardamos el DNI en el campo legajo para compatibilidad con la BD
       legajoValue = dniRaw;
     }
 
@@ -441,7 +458,11 @@ const LoginPage = (() => {
     errEl.classList.add('hidden');
 
     let rol = 'R02_ESTUDIANTE';
-    if (!esEstudiante) {
+    if (esEstudPosgrado) {
+      // Estudiante Posgrado siempre usa R07, sin selección adicional
+      rol = 'R07_ESTUDIANTE_POSGRADO';
+    } else if (!esEstudiante) {
+      // Egresado/Docente: usa el radio seleccionado
       const sel = document.querySelector('input[name="regRolDocenteEgresado"]:checked');
       rol = sel?.value || 'R03_EGRESADO';
     }

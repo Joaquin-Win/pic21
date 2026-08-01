@@ -122,7 +122,8 @@ public class AuthService {
     }
 
     private boolean isGrupoA(Rol rol) {
-        return rol == Rol.R01_PROFESOR || rol == Rol.R03_EGRESADO || rol == Rol.R04_ADMIN || rol == Rol.R05_DIRECTOR;
+        return rol == Rol.R01_PROFESOR || rol == Rol.R03_EGRESADO || rol == Rol.R04_ADMIN
+            || rol == Rol.R05_DIRECTOR || rol == Rol.R07_ESTUDIANTE_POSGRADO;
     }
 
     private boolean isGrupoB(Rol rol) {

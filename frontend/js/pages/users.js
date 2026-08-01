@@ -16,13 +16,14 @@ const UsersPage = (() => {
     { value: 'R04_ADMIN',      label: 'Admin' },
     { value: 'R05_DIRECTOR',   label: 'Director' },
     { value: 'R01_PROFESOR',   label: 'Profesor' },
-    { value: 'R03_EGRESADO',   label: 'Egresado' },
+    { value: 'R03_EGRESADO',             label: 'Egresado' },
+    { value: 'R07_ESTUDIANTE_POSGRADO',   label: 'Estudiante Posgrado' },
     { value: 'R06_AYUDANTE',   label: 'Ayudante' },
     { value: 'R02_ESTUDIANTE', label: 'Estudiante' },
   ];
 
   // Roles Grupo A (PerfilPersonal)
-  const GRUPO_A = ['R04_ADMIN','R01_PROFESOR','R05_DIRECTOR','R03_EGRESADO'];
+  const GRUPO_A = ['R04_ADMIN','R01_PROFESOR','R05_DIRECTOR','R03_EGRESADO','R07_ESTUDIANTE_POSGRADO'];
   // Roles Grupo B (PerfilEstudiantil)
   const GRUPO_B = ['R02_ESTUDIANTE','R06_AYUDANTE'];
 

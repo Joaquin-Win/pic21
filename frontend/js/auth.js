@@ -8,12 +8,13 @@ const AuthService = (() => {
 
   // Mapa UML v8: rol enum → etiqueta legible
   const ROLE_DISPLAY_NAMES = {
-    'R04_ADMIN':      'Admin',
-    'R05_DIRECTOR':   'Director',
-    'R01_PROFESOR':   'Profesor',
-    'R03_EGRESADO':   'Egresado',
-    'R06_AYUDANTE':   'Ayudante',
-    'R02_ESTUDIANTE': 'Estudiante',
+    'R04_ADMIN':                'Admin',
+    'R05_DIRECTOR':             'Director',
+    'R01_PROFESOR':             'Profesor',
+    'R03_EGRESADO':             'Egresado',
+    'R06_AYUDANTE':             'Ayudante',
+    'R02_ESTUDIANTE':           'Estudiante',
+    'R07_ESTUDIANTE_POSGRADO':  'Estudiante Posgrado',
   };
 
   // ── Login ────────────────────────────────────────────
@@ -66,7 +67,8 @@ const AuthService = (() => {
   function isProfesor()  { return hasRole('R01_PROFESOR'); }
   function isAyudante()  { return hasRole('R06_AYUDANTE'); }
   function isEstudiante(){ return hasRole('R02_ESTUDIANTE'); }
-  function isEgresado()  { return hasRole('R03_EGRESADO'); }
+  function isEgresado()           { return hasRole('R03_EGRESADO'); }
+  function isEstudiantePosgrado() { return hasRole('R07_ESTUDIANTE_POSGRADO'); }
 
   function isStaff()     { return isAdmin() || isDirector() || isProfesor() || isAyudante(); }
 
@@ -77,7 +79,8 @@ const AuthService = (() => {
     if (user.roles.includes('R01_PROFESOR')) return 'R01_PROFESOR';
     if (user.roles.includes('R05_DIRECTOR')) return 'R05_DIRECTOR';
     if (user.roles.includes('R06_AYUDANTE')) return 'R06_AYUDANTE';
-    if (user.roles.includes('R03_EGRESADO')) return 'R03_EGRESADO';
+    if (user.roles.includes('R03_EGRESADO'))            return 'R03_EGRESADO';
+    if (user.roles.includes('R07_ESTUDIANTE_POSGRADO')) return 'R07_ESTUDIANTE_POSGRADO';
     return 'R02_ESTUDIANTE';
   }
 
@@ -96,7 +99,7 @@ const AuthService = (() => {
   return {
     login, logout, getToken, getUser,
     isAuthenticated, hasRole,
-    isAdmin, isDirector, isProfesor, isAyudante, isEstudiante, isEgresado, isStaff,
+    isAdmin, isDirector, isProfesor, isAyudante, isEstudiante, isEgresado, isEstudiantePosgrado, isStaff,
     getPrimaryRole, getDisplayName, getDisplayRole,
   };
 })();

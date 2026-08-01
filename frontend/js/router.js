@@ -4,7 +4,7 @@
 
 const Router = (() => {
   // Roles UML v8 completos para rutas que admiten todos
-  const ALL_ROLES = ['R04_ADMIN','R01_PROFESOR','R05_DIRECTOR','R06_AYUDANTE','R02_ESTUDIANTE','R03_EGRESADO'];
+  const ALL_ROLES = ['R04_ADMIN','R01_PROFESOR','R05_DIRECTOR','R06_AYUDANTE','R02_ESTUDIANTE','R03_EGRESADO','R07_ESTUDIANTE_POSGRADO'];
 
   function getRoutes() {
     /* eslint-disable no-undef */

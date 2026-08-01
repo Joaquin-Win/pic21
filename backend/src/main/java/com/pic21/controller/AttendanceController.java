@@ -52,7 +52,7 @@ public class AttendanceController {
     private final ExcelExportService excelExportService;
 
     @PostMapping(value={"/meeting/{meetingId}/self"})
-    @PreAuthorize(value="!hasAnyRole('R04_ADMIN','R05_DIRECTOR','R01_PROFESOR') and hasAnyRole('R02_ESTUDIANTE','R03_EGRESADO','R06_AYUDANTE')")
+    @PreAuthorize(value="!hasAnyRole('R04_ADMIN','R05_DIRECTOR','R01_PROFESOR') and hasAnyRole('R02_ESTUDIANTE','R03_EGRESADO','R06_AYUDANTE','R07_ESTUDIANTE_POSGRADO')")
     public ResponseEntity<AttendanceResponse> registerSelf(@PathVariable Long meetingId, @RequestBody(required=false) AttendanceRequest request, @AuthenticationPrincipal UserDetails userDetails) {
         AttendanceResponse response = this.attendanceService.registerSelf(meetingId, userDetails.getUsername(), request);
         return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body((Object)response);

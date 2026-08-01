@@ -6,7 +6,7 @@ const Sidebar = (() => {
   let built = false;
 
   // Roles UML v8
-  const ALL_ROLES = ['R04_ADMIN','R01_PROFESOR','R05_DIRECTOR','R06_AYUDANTE','R02_ESTUDIANTE','R03_EGRESADO'];
+  const ALL_ROLES = ['R04_ADMIN','R01_PROFESOR','R05_DIRECTOR','R06_AYUDANTE','R02_ESTUDIANTE','R03_EGRESADO','R07_ESTUDIANTE_POSGRADO'];
 
   const allNavItems = [
     {

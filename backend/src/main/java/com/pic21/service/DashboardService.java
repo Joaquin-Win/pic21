@@ -40,7 +40,7 @@ public class DashboardService {
     @Transactional(readOnly=true)
     @PreAuthorize(value="hasAnyRole('R04_ADMIN','R05_DIRECTOR')")
     public DashboardResponse getDashboard() {
-        long totalStudents = this.usuarioRepository.findAll().stream().filter(u -> u.getRoles().contains(Rol.R02_ESTUDIANTE) || u.getRoles().contains(Rol.R03_EGRESADO) || u.getRoles().contains(Rol.R06_AYUDANTE)).count();
+        long totalStudents = this.usuarioRepository.findAll().stream().filter(u -> u.getRoles().contains(Rol.R02_ESTUDIANTE) || u.getRoles().contains(Rol.R03_EGRESADO) || u.getRoles().contains(Rol.R06_AYUDANTE) || u.getRoles().contains(Rol.R07_ESTUDIANTE_POSGRADO)).count();
         long totalMeetings = this.reunionRepository.count();
         long totalAttendances = this.asistenciaRepository.count();
         List reuniones = this.reunionRepository.findAll();

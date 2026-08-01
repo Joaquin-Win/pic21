@@ -74,7 +74,7 @@ public class UserService {
                 return Rol.valueOf((String)rn.toUpperCase());
             }
             catch (IllegalArgumentException e) {
-                throw new BusinessException("Rol inv\u00e1lido: " + rn + ". V\u00e1lidos: R01_PROFESOR, R02_ESTUDIANTE, R03_EGRESADO, R04_ADMIN, R05_DIRECTOR, R06_AYUDANTE");
+                throw new BusinessException("Rol inv\u00e1lido: " + rn + ". V\u00e1lidos: R01_PROFESOR, R02_ESTUDIANTE, R03_EGRESADO, R04_ADMIN, R05_DIRECTOR, R06_AYUDANTE, R07_ESTUDIANTE_POSGRADO");
             }
         }).collect(Collectors.toCollection(() -> EnumSet.noneOf(Rol.class)));
         if (newRoles.isEmpty()) {

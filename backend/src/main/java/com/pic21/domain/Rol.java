@@ -12,7 +12,8 @@ public enum Rol {
     R03_EGRESADO,
     R04_ADMIN,
     R05_DIRECTOR,
-    R06_AYUDANTE;
+    R06_AYUDANTE,
+    R07_ESTUDIANTE_POSGRADO;
 
 }
 

@@ -86,7 +86,9 @@ public class Usuario {
     private PerfilEstudiantil perfilEstudiantil;
 
     public boolean esGrupoA() {
-        return this.roles.contains(Rol.R01_PROFESOR) || this.roles.contains(Rol.R03_EGRESADO) || this.roles.contains(Rol.R04_ADMIN) || this.roles.contains(Rol.R05_DIRECTOR);
+        return this.roles.contains(Rol.R01_PROFESOR) || this.roles.contains(Rol.R03_EGRESADO)
+            || this.roles.contains(Rol.R04_ADMIN) || this.roles.contains(Rol.R05_DIRECTOR)
+            || this.roles.contains(Rol.R07_ESTUDIANTE_POSGRADO);
     }
 
     public boolean esGrupoB() {

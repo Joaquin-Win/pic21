@@ -75,7 +75,7 @@ public class TaskService {
     private final AsistenciaRepository asistenciaRepository;
     @PersistenceContext
     private EntityManager entityManager;
-    private static final Set<Rol> ASSIGNABLE_ROLES = new HashSet<Rol>(Arrays.asList(Rol.R02_ESTUDIANTE, Rol.R06_AYUDANTE, Rol.R03_EGRESADO));
+    private static final Set<Rol> ASSIGNABLE_ROLES = new HashSet<Rol>(Arrays.asList(Rol.R02_ESTUDIANTE, Rol.R06_AYUDANTE, Rol.R03_EGRESADO, Rol.R07_ESTUDIANTE_POSGRADO));
 
     @Transactional
     public List<TaskAssignmentResponse> createForAbsent(Long reunionId, TaskRequest request, String creatorUsername) {
