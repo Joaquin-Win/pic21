@@ -55,13 +55,13 @@ public class AttendanceController {
     @PreAuthorize(value="!hasAnyRole('R04_ADMIN','R05_DIRECTOR','R01_PROFESOR') and hasAnyRole('R02_ESTUDIANTE','R03_EGRESADO','R06_AYUDANTE','R07_ESTUDIANTE_POSGRADO')")
     public ResponseEntity<AttendanceResponse> registerSelf(@PathVariable Long meetingId, @RequestBody(required=false) AttendanceRequest request, @AuthenticationPrincipal UserDetails userDetails) {
         AttendanceResponse response = this.attendanceService.registerSelf(meetingId, userDetails.getUsername(), request);
-        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body((Object)response);
+        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body(response);
     }
 
     @GetMapping(value={"/meeting/{meetingId}"})
     @PreAuthorize(value="hasAnyRole('R04_ADMIN','R05_DIRECTOR')")
     public ResponseEntity<List<AttendanceResponse>> findByMeeting(@PathVariable Long meetingId) {
-        return ResponseEntity.ok((Object)this.attendanceService.findByReunion(meetingId));
+        return ResponseEntity.ok(this.attendanceService.findByReunion(meetingId));
     }
 
     @GetMapping(value={"/meeting/{meetingId}/excel"})
@@ -69,7 +69,7 @@ public class AttendanceController {
     public ResponseEntity<byte[]> exportMeetingAttendancesToExcel(@PathVariable Long meetingId) {
         byte[] excelBytes = this.excelExportService.exportAttendanceByMeeting(meetingId);
         String filename = "asistencias_reunion_" + meetingId + "_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")) + ".xlsx";
-        return ((ResponseEntity.BodyBuilder)ResponseEntity.ok().header("Content-Disposition", new String[]{"attachment; filename=\"" + filename + "\""})).contentType(MediaType.parseMediaType((String)"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")).body((Object)excelBytes);
+        return ((ResponseEntity.BodyBuilder)ResponseEntity.ok().header("Content-Disposition", new String[]{"attachment; filename=\"" + filename + "\""})).contentType(MediaType.parseMediaType((String)"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")).body(excelBytes);
     }
 
     @GetMapping(value={"/excel"})
@@ -77,7 +77,7 @@ public class AttendanceController {
     public ResponseEntity<byte[]> exportAllAttendancesToExcel() {
         byte[] excelBytes = this.excelExportService.exportAllAttendances();
         String filename = "asistencias_global_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")) + ".xlsx";
-        return ((ResponseEntity.BodyBuilder)ResponseEntity.ok().header("Content-Disposition", new String[]{"attachment; filename=\"" + filename + "\""})).contentType(MediaType.parseMediaType((String)"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")).body((Object)excelBytes);
+        return ((ResponseEntity.BodyBuilder)ResponseEntity.ok().header("Content-Disposition", new String[]{"attachment; filename=\"" + filename + "\""})).contentType(MediaType.parseMediaType((String)"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")).body(excelBytes);
     }
 
     public AttendanceController(AttendanceService attendanceService, ExcelExportService excelExportService) {

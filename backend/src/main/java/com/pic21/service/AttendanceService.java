@@ -48,7 +48,7 @@ public class AttendanceService {
 
     @Transactional
     public AttendanceResponse registerSelf(Long reunionId, String username, AttendanceRequest request) {
-        Reunion reunion = (Reunion)this.reunionRepository.findById((Object)reunionId).orElseThrow(() -> new ResourceNotFoundException("Reuni\u00f3n", reunionId));
+        Reunion reunion = (Reunion)this.reunionRepository.findById(reunionId).orElseThrow(() -> new ResourceNotFoundException("Reuni\u00f3n", reunionId));
         if (reunion.getEstado() != EstadoReunion.EN_CURSO) {
             throw new BusinessException("Solo se puede registrar asistencia cuando la reuni\u00f3n est\u00e1 EN_CURSO. Estado actual: " + String.valueOf(reunion.getEstado()));
         }
@@ -57,14 +57,14 @@ public class AttendanceService {
             throw new BusinessException("Ya registraste tu asistencia en '" + reunion.getTitulo() + "'. No pod\u00e9s registrarte dos veces.");
         }
         Asistencia asistencia = Asistencia.builder().reunion(reunion).usuario(usuario).presente(request != null && request.isPresente()).build();
-        Asistencia saved = (Asistencia)this.asistenciaRepository.save((Object)asistencia);
+        Asistencia saved = (Asistencia)this.asistenciaRepository.save(asistencia);
         log.info("Asistencia registrada: user='{}' reunion='{}' presente={}", new Object[]{username, reunion.getTitulo(), saved.isPresente()});
         return this.mapToResponse(saved);
     }
 
     @Transactional(readOnly=true)
     public List<AttendanceResponse> findByReunion(Long reunionId) {
-        Reunion reunion = (Reunion)this.reunionRepository.findById((Object)reunionId).orElseThrow(() -> new ResourceNotFoundException("Reuni\u00f3n", reunionId));
+        Reunion reunion = (Reunion)this.reunionRepository.findById(reunionId).orElseThrow(() -> new ResourceNotFoundException("Reuni\u00f3n", reunionId));
         return this.asistenciaRepository.findByReunionWithDetails(reunion).stream().map(arg_0 -> this.mapToResponse(arg_0)).collect(Collectors.toList());
     }
 

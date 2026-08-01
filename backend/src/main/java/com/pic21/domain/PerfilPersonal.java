@@ -39,6 +39,7 @@ public class PerfilPersonal {
     public PerfilPersonal() {
     }
 
+    @Builder
     public PerfilPersonal(String dni, String correo) {
         this.dni = dni;
         this.correo = correo;

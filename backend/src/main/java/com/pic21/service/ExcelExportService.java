@@ -67,7 +67,7 @@ public class ExcelExportService {
     @Transactional(readOnly=true)
     public byte[] exportAttendanceByMeeting(Long reunionId) {
         byte[] byArray;
-        Reunion reunion = (Reunion)this.reunionRepository.findById((Object)reunionId).orElseThrow(() -> new ResourceNotFoundException("Reuni\u00f3n", reunionId));
+        Reunion reunion = (Reunion)this.reunionRepository.findById(reunionId).orElseThrow(() -> new ResourceNotFoundException("Reuni\u00f3n", reunionId));
         List asistencias = this.asistenciaRepository.findByReunionWithDetails(reunion);
         XSSFWorkbook workbook = new XSSFWorkbook();
         try {
@@ -116,7 +116,7 @@ public class ExcelExportService {
             }
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             workbook.write((OutputStream)out);
-            log.info("Excel generado: {} filas para reuni\u00f3n id={}", (Object)asistencias.size(), (Object)reunionId);
+            log.info("Excel generado: {} filas para reuni\u00f3n id={}", asistencias.size(), reunionId);
             byArray = out.toByteArray();
         }
         catch (Throwable throwable) {
@@ -211,7 +211,7 @@ public class ExcelExportService {
             }
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             workbook.write((OutputStream)out);
-            log.info("Excel global generado: {} reuniones, {} asistencias", (Object)reuniones.size(), (Object)totalGlobal);
+            log.info("Excel global generado: {} reuniones, {} asistencias", reuniones.size(), totalGlobal);
             byArray = out.toByteArray();
         }
         catch (Throwable throwable) {

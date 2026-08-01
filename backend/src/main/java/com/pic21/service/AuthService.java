@@ -65,12 +65,12 @@ public class AuthService {
     @Transactional(readOnly=true)
     public AuthResponse login(LoginRequest request) {
         String normalized = request.getUsername().toLowerCase().trim();
-        Authentication authentication = this.authenticationManager.authenticate((Authentication)new UsernamePasswordAuthenticationToken((Object)normalized, (Object)request.getPassword()));
+        Authentication authentication = this.authenticationManager.authenticate((Authentication)new UsernamePasswordAuthenticationToken(normalized, request.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String token = this.jwtTokenProvider.generateToken(authentication);
         Usuario usuario = (Usuario)this.usuarioRepository.findByUsernameIgnoreCase(normalized).or(() -> this.usuarioRepository.findByCredencial_EmailIgnoreCase(normalized)).orElseThrow(() -> new ResourceNotFoundException("Usuario", Long.valueOf(0L)));
         List roles = usuario.getRoles().stream().map(Enum::name).collect(Collectors.toList());
-        log.info("Login exitoso: {}", (Object)normalized);
+        log.info("Login exitoso: {}", normalized);
         return AuthResponse.builder().token(token).type("Bearer").id(usuario.getId()).username(usuario.getUsername()).nombre(usuario.getNombre()).apellido(usuario.getApellido()).email(usuario.getCredencial().getEmail()).roles(roles).build();
     }
 
@@ -104,8 +104,8 @@ public class AuthService {
             perfilEstudiantil = PerfilEstudiantil.builder().correoInstitucional(request.getCorreoInstitucional()).legajo(request.getLegajo()).carrera(request.getCarrera()).build();
         }
         Usuario usuario = Usuario.builder().username(normalizedUsername).nombre(request.getNombre()).apellido(request.getApellido()).roles(roles).activo(true).credencial(credencial).perfilPersonal(perfilPersonal).perfilEstudiantil(perfilEstudiantil).build();
-        this.usuarioRepository.save((Object)usuario);
-        log.info("Usuario creado: {} con rol {}", (Object)normalizedUsername, (Object)rol);
+        this.usuarioRepository.save(usuario);
+        log.info("Usuario creado: {} con rol {}", normalizedUsername, rol);
         return this.mapToUserResponse(usuario);
     }
 

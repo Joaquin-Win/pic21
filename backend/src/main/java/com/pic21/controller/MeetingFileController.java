@@ -54,12 +54,12 @@ public class MeetingFileController {
     @PreAuthorize(value="hasAnyRole('R04_ADMIN','R01_PROFESOR')")
     public ResponseEntity<List<MeetingFileResponse>> upload(@PathVariable Long meetingId, @RequestParam(value="files") List<MultipartFile> files, @AuthenticationPrincipal UserDetails userDetails) {
         List result = this.fileService.uploadFiles(meetingId, files, userDetails.getUsername());
-        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body((Object)result);
+        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body(result);
     }
 
     @GetMapping(value={"/api/meetings/{meetingId}/files"})
     public ResponseEntity<List<MeetingFileResponse>> listByMeeting(@PathVariable Long meetingId) {
-        return ResponseEntity.ok((Object)this.fileService.listByMeeting(meetingId));
+        return ResponseEntity.ok(this.fileService.listByMeeting(meetingId));
     }
 
     @GetMapping(value={"/api/files/{fileId}/download"})
@@ -69,7 +69,7 @@ public class MeetingFileController {
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", file.getFileName());
         headers.setContentLength((long)file.getFileData().length);
-        return new ResponseEntity((Object)file.getFileData(), (MultiValueMap)headers, (HttpStatusCode)HttpStatus.OK);
+        return new ResponseEntity(file.getFileData(), (MultiValueMap)headers, (HttpStatusCode)HttpStatus.OK);
     }
 
     @DeleteMapping(value={"/api/files/{fileId}"})
@@ -82,7 +82,7 @@ public class MeetingFileController {
     @GetMapping(value={"/api/files"})
     @PreAuthorize(value="hasRole('R04_ADMIN')")
     public ResponseEntity<List<MeetingFileResponse>> listAll() {
-        return ResponseEntity.ok((Object)this.fileService.listAll());
+        return ResponseEntity.ok(this.fileService.listAll());
     }
 
     public MeetingFileController(MeetingFileService fileService) {

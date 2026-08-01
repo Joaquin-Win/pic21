@@ -69,7 +69,7 @@ implements ApplicationRunner {
                 changed = true;
             }
             if (changed) {
-                this.usuarioRepository.save((Object)admin);
+                this.usuarioRepository.save(admin);
                 log.info("Credenciales del admin actualizadas.");
             }
             return;
@@ -77,7 +77,7 @@ implements ApplicationRunner {
         Credencial credencial = Credencial.builder().email(ADMIN_EMAIL).passwordHash(this.passwordEncoder.encode((CharSequence)ADMIN_PASSWORD)).build();
         PerfilPersonal perfil = PerfilPersonal.builder().dni("00000000").correo(ADMIN_EMAIL).build();
         Usuario admin = Usuario.builder().username(ADMIN_USERNAME).nombre("Admin").apellido("Admin").roles(EnumSet.of(Rol.R04_ADMIN)).activo(true).credencial(credencial).perfilPersonal(perfil).build();
-        this.usuarioRepository.save((Object)admin);
+        this.usuarioRepository.save(admin);
         log.info("Usuario admin creado (R04_ADMIN).");
     }
 
@@ -97,7 +97,7 @@ implements ApplicationRunner {
             log.info("Migraci\u00f3n de columnas completada.");
         }
         catch (Exception ex) {
-            log.warn("Migraci\u00f3n de columnas (no cr\u00edtico): {}", (Object)ex.getMessage());
+            log.warn("Migraci\u00f3n de columnas (no cr\u00edtico): {}", ex.getMessage());
         }
     }
 
@@ -106,7 +106,7 @@ implements ApplicationRunner {
             this.entityManager.createNativeQuery(sql).executeUpdate();
         }
         catch (Exception ex) {
-            log.debug("SQL ignorado ({}): {}", (Object)sql, (Object)ex.getMessage());
+            log.debug("SQL ignorado ({}): {}", sql, ex.getMessage());
         }
     }
 

@@ -49,12 +49,12 @@ public class MeetingFileService {
 
     @Transactional
     public List<MeetingFileResponse> uploadFiles(Long reunionId, List<MultipartFile> files, String uploaderUsername) {
-        Reunion reunion = (Reunion)this.reunionRepository.findById((Object)reunionId).orElseThrow(() -> new ResourceNotFoundException("Reuni\u00f3n", reunionId));
+        Reunion reunion = (Reunion)this.reunionRepository.findById(reunionId).orElseThrow(() -> new ResourceNotFoundException("Reuni\u00f3n", reunionId));
         Usuario uploader = (Usuario)this.usuarioRepository.findByUsernameIgnoreCase(uploaderUsername).orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + uploaderUsername));
         if (files == null || files.isEmpty()) {
             throw new BusinessException("Debe enviar al menos un archivo.");
         }
-        List saved = files.stream().map(file -> {
+        List<ArchivoReunion> saved = files.stream().map(file -> {
             this.validateFile(file);
             try {
                 return ArchivoReunion.builder().fileName(this.sanitizeFileName(file.getOriginalFilename())).fileType(ALLOWED_TYPE).fileData(file.getBytes()).reunion(reunion).subidoPor(uploader).build();
@@ -63,14 +63,14 @@ public class MeetingFileService {
                 throw new BusinessException("Error al leer el archivo: " + file.getOriginalFilename());
             }
         }).collect(Collectors.toList());
-        List result = this.archivoRepository.saveAll(saved);
+        List<ArchivoReunion> result = this.archivoRepository.saveAll(saved);
         log.info("Subidos {} archivos a reuni\u00f3n id={} por '{}'", new Object[]{result.size(), reunionId, uploaderUsername});
         return result.stream().map(arg_0 -> this.mapToResponse(arg_0)).collect(Collectors.toList());
     }
 
     @Transactional(readOnly=true)
     public List<MeetingFileResponse> listByMeeting(Long reunionId) {
-        if (!this.reunionRepository.existsById((Object)reunionId)) {
+        if (!this.reunionRepository.existsById(reunionId)) {
             throw new ResourceNotFoundException("Reuni\u00f3n", reunionId);
         }
         return this.archivoRepository.findByReunionIdOrderByUploadedAtDesc(reunionId).stream().map(arg_0 -> this.mapToResponse(arg_0)).collect(Collectors.toList());
@@ -78,14 +78,14 @@ public class MeetingFileService {
 
     @Transactional(readOnly=true)
     public ArchivoReunion getFileForDownload(Long fileId) {
-        return (ArchivoReunion)this.archivoRepository.findById((Object)fileId).orElseThrow(() -> new ResourceNotFoundException("Archivo", fileId));
+        return (ArchivoReunion)this.archivoRepository.findById(fileId).orElseThrow(() -> new ResourceNotFoundException("Archivo", fileId));
     }
 
     @Transactional
     public void deleteFile(Long fileId) {
-        ArchivoReunion file = (ArchivoReunion)this.archivoRepository.findById((Object)fileId).orElseThrow(() -> new ResourceNotFoundException("Archivo", fileId));
-        this.archivoRepository.delete((Object)file);
-        log.info("Archivo id={} '{}' eliminado", (Object)fileId, (Object)file.getFileName());
+        ArchivoReunion file = (ArchivoReunion)this.archivoRepository.findById(fileId).orElseThrow(() -> new ResourceNotFoundException("Archivo", fileId));
+        this.archivoRepository.delete(file);
+        log.info("Archivo id={} '{}' eliminado", fileId, file.getFileName());
     }
 
     @Transactional(readOnly=true)

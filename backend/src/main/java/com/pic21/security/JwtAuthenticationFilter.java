@@ -57,13 +57,13 @@ extends OncePerRequestFilter {
             if (token != null && this.jwtTokenProvider.validateToken(token)) {
                 String username = this.jwtTokenProvider.getUsernameFromToken(token);
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken((Object)userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails((Object)new WebAuthenticationDetailsSource().buildDetails(request));
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication((Authentication)authentication);
             }
         }
         catch (Exception ex) {
-            log.error("Error al autenticar el token JWT: {}", (Object)ex.getMessage());
+            log.error("Error al autenticar el token JWT: {}", ex.getMessage());
         }
         filterChain.doFilter((ServletRequest)request, (ServletResponse)response);
     }

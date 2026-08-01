@@ -104,22 +104,22 @@ public class MeetingFileResponse {
             return false;
         }
         MeetingFileResponse other = (MeetingFileResponse)o;
-        if (!other.canEqual((Object)this)) {
+        if (!other.canEqual(this)) {
             return false;
         }
         Long this$id = this.getId();
         Long other$id = other.getId();
-        if (this$id == null ? other$id != null : !((Object)this$id).equals(other$id)) {
+        if (this$id == null ? other$id != null : !(this$id).equals(other$id)) {
             return false;
         }
         Long this$meetingId = this.getMeetingId();
         Long other$meetingId = other.getMeetingId();
-        if (this$meetingId == null ? other$meetingId != null : !((Object)this$meetingId).equals(other$meetingId)) {
+        if (this$meetingId == null ? other$meetingId != null : !(this$meetingId).equals(other$meetingId)) {
             return false;
         }
         Long this$fileSize = this.getFileSize();
         Long other$fileSize = other.getFileSize();
-        if (this$fileSize == null ? other$fileSize != null : !((Object)this$fileSize).equals(other$fileSize)) {
+        if (this$fileSize == null ? other$fileSize != null : !(this$fileSize).equals(other$fileSize)) {
             return false;
         }
         String this$fileName = this.getFileName();
@@ -144,7 +144,7 @@ public class MeetingFileResponse {
         }
         LocalDateTime this$uploadedAt = this.getUploadedAt();
         LocalDateTime other$uploadedAt = other.getUploadedAt();
-        return !(this$uploadedAt == null ? other$uploadedAt != null : !((Object)this$uploadedAt).equals(other$uploadedAt));
+        return !(this$uploadedAt == null ? other$uploadedAt != null : !(this$uploadedAt).equals(other$uploadedAt));
     }
 
     protected boolean canEqual(Object other) {

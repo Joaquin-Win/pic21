@@ -81,8 +81,8 @@ public class UserService {
             throw new BusinessException("El usuario debe tener al menos un rol.");
         }
         usuario.setRoles(newRoles);
-        log.info("Roles actualizados para '{}': {}", (Object)usuario.getUsername(), roleNames);
-        return this.authService.mapToUserResponse((Usuario)this.usuarioRepository.save((Object)usuario));
+        log.info("Roles actualizados para '{}': {}", usuario.getUsername(), roleNames);
+        return this.authService.mapToUserResponse((Usuario)this.usuarioRepository.save(usuario));
     }
 
     @Transactional
@@ -111,8 +111,8 @@ public class UserService {
             pe.setCarrera(request.getCarrera());
             usuario.setPerfilEstudiantil(pe);
         }
-        log.info("Perfil id={} actualizado por '{}'", (Object)id, (Object)adminUsername);
-        return this.authService.mapToUserResponse((Usuario)this.usuarioRepository.save((Object)usuario));
+        log.info("Perfil id={} actualizado por '{}'", id, adminUsername);
+        return this.authService.mapToUserResponse((Usuario)this.usuarioRepository.save(usuario));
     }
 
     @Transactional
@@ -125,12 +125,12 @@ public class UserService {
             this.asignacionTareaRepository.deleteByUsuarioId(id);
             this.asistenciaRepository.deleteByUsuarioId(id);
             this.usuarioRepository.flush();
-            this.usuarioRepository.delete((Object)usuario);
+            this.usuarioRepository.delete(usuario);
             this.usuarioRepository.flush();
             log.info("Usuario '{}' (id={}) eliminado por '{}'", new Object[]{usuario.getUsername(), id, adminUsername});
         }
         catch (DataIntegrityViolationException ex) {
-            log.error("FK error al eliminar usuario id={}: {}", (Object)id, (Object)ex.getMessage());
+            log.error("FK error al eliminar usuario id={}: {}", id, ex.getMessage());
             throw new BusinessException("No se puede eliminar: tiene datos asociados (reuniones, tareas creadas). Deshabilit\u00e1 en su lugar.");
         }
     }
@@ -143,11 +143,11 @@ public class UserService {
         }
         usuario.setActivo(!usuario.isActivo());
         log.info("Usuario '{}' {} por '{}'", new Object[]{usuario.getUsername(), usuario.isActivo() ? "activado" : "desactivado", adminUsername});
-        return this.authService.mapToUserResponse((Usuario)this.usuarioRepository.save((Object)usuario));
+        return this.authService.mapToUserResponse((Usuario)this.usuarioRepository.save(usuario));
     }
 
     private Usuario findOrThrow(Long id) {
-        return (Usuario)this.usuarioRepository.findById((Object)id).orElseThrow(() -> new ResourceNotFoundException("Usuario", id));
+        return (Usuario)this.usuarioRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Usuario", id));
     }
 
     public UserService(UsuarioRepository usuarioRepository, AsignacionTareaRepository asignacionTareaRepository, AsistenciaRepository asistenciaRepository, AuthService authService) {

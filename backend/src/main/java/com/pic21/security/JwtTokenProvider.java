@@ -76,10 +76,10 @@ public class JwtTokenProvider {
             return true;
         }
         catch (JwtException e) {
-            log.warn("JWT inv\u00e1lido: {}", (Object)e.getMessage());
+            log.warn("JWT inv\u00e1lido: {}", e.getMessage());
         }
         catch (IllegalArgumentException e) {
-            log.warn("JWT vac\u00edo o nulo: {}", (Object)e.getMessage());
+            log.warn("JWT vac\u00edo o nulo: {}", e.getMessage());
         }
         return false;
     }

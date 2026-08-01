@@ -71,26 +71,26 @@ public class MeetingController {
 
     @GetMapping
     public ResponseEntity<Page<MeetingResponse>> getAll(@PageableDefault(size=50, sort={"fechaInicio"}) Pageable pageable) {
-        return ResponseEntity.ok((Object)this.meetingService.findAll(pageable));
+        return ResponseEntity.ok(this.meetingService.findAll(pageable));
     }
 
     @GetMapping(value={"/{id}"})
     public ResponseEntity<MeetingResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok((Object)this.meetingService.findById(id));
+        return ResponseEntity.ok(this.meetingService.findById(id));
     }
 
     @PostMapping
     @PreAuthorize(value="hasAnyRole('R04_ADMIN','R05_DIRECTOR')")
     public ResponseEntity<MeetingResponse> create(@Valid @RequestBody MeetingRequest request, @AuthenticationPrincipal UserDetails userDetails) {
         MeetingResponse response = this.meetingService.create(request, userDetails.getUsername());
-        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body((Object)response);
+        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body(response);
     }
 
     @PutMapping(value={"/{id}"})
     @PreAuthorize(value="hasAnyRole('R04_ADMIN','R05_DIRECTOR')")
     public ResponseEntity<MeetingResponse> update(@PathVariable Long id, @Valid @RequestBody MeetingRequest request, @AuthenticationPrincipal UserDetails me) {
         boolean isAdmin = me.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_R04_ADMIN"));
-        return ResponseEntity.ok((Object)this.meetingService.update(id, request, isAdmin));
+        return ResponseEntity.ok(this.meetingService.update(id, request, isAdmin));
     }
 
     @DeleteMapping(value={"/{id}"})
@@ -108,19 +108,19 @@ public class MeetingController {
         if (newEstado == EstadoReunion.BLOQUEADA && !me.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_R04_ADMIN"))) {
             throw new BusinessException("Solo ADMIN puede bloquear reuniones.");
         }
-        return ResponseEntity.ok((Object)this.meetingService.changeStatus(id, newEstado, isAdmin));
+        return ResponseEntity.ok(this.meetingService.changeStatus(id, newEstado, isAdmin));
     }
 
     @PostMapping(value={"/{id}/pdf"}, consumes={"multipart/form-data"})
     @PreAuthorize(value="hasRole('R04_ADMIN')")
     public ResponseEntity<MeetingResponse> uploadPdf(@PathVariable Long id, @RequestParam(value="file") MultipartFile file) {
-        return ResponseEntity.ok((Object)this.meetingService.uploadPdf(id, file));
+        return ResponseEntity.ok(this.meetingService.uploadPdf(id, file));
     }
 
     @GetMapping(value={"/{id}/pdf"}, produces={"application/pdf"})
     public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id) {
         Reunion reunion = this.meetingService.getReunionWithPdf(id);
-        return ((ResponseEntity.BodyBuilder)ResponseEntity.ok().header("Content-Disposition", new String[]{"attachment; filename=\"" + reunion.getPdfFileName() + "\""})).body((Object)reunion.getPdfFileData());
+        return ((ResponseEntity.BodyBuilder)ResponseEntity.ok().header("Content-Disposition", new String[]{"attachment; filename=\"" + reunion.getPdfFileName() + "\""})).body(reunion.getPdfFileData());
     }
 
     public MeetingController(MeetingService meetingService) {

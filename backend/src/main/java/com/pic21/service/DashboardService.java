@@ -18,6 +18,7 @@
 package com.pic21.service;
 
 import com.pic21.domain.Rol;
+import com.pic21.domain.Reunion;
 import com.pic21.dto.response.DashboardResponse;
 import com.pic21.repository.AsistenciaRepository;
 import com.pic21.repository.ReunionRepository;
@@ -43,8 +44,8 @@ public class DashboardService {
         long totalStudents = this.usuarioRepository.findAll().stream().filter(u -> u.getRoles().contains(Rol.R02_ESTUDIANTE) || u.getRoles().contains(Rol.R03_EGRESADO) || u.getRoles().contains(Rol.R06_AYUDANTE) || u.getRoles().contains(Rol.R07_ESTUDIANTE_POSGRADO)).count();
         long totalMeetings = this.reunionRepository.count();
         long totalAttendances = this.asistenciaRepository.count();
-        List reuniones = this.reunionRepository.findAll();
-        List meetingStatsList = reuniones.stream().map(reunion -> {
+        List<Reunion> reuniones = this.reunionRepository.findAll();
+        List<DashboardResponse.MeetingStats> meetingStatsList = reuniones.stream().map(reunion -> {
             int attended = this.asistenciaRepository.findByReunionWithDetails(reunion).size();
             double percentage = totalStudents > 0L ? (double)Math.round((double)attended * 100.0 / (double)totalStudents * 10.0) / 10.0 : 0.0;
             return DashboardResponse.MeetingStats.builder().meetingId(reunion.getId()).meetingTitle(reunion.getTitulo()).meetingStatus(reunion.getEstado().name()).totalAttendances(attended).totalStudents((int)totalStudents).attendancePercentage(percentage).build();

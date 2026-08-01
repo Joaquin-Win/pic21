@@ -56,7 +56,7 @@ public class AuthController {
         try {
             AuthResponse response = this.authService.login(request);
             this.loginAttempts.remove(key);
-            return ResponseEntity.ok((Object)response);
+            return ResponseEntity.ok(response);
         }
         catch (Exception ex) {
             attempts.incrementAndGet();
@@ -67,12 +67,12 @@ public class AuthController {
     @PostMapping(value={"/register"})
     @PreAuthorize(value="hasRole('R04_ADMIN')")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body((Object)this.authService.register(request));
+        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body(this.authService.register(request));
     }
 
     @PostMapping(value={"/register-public"})
     public ResponseEntity<UserResponse> registerPublic(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body((Object)this.authService.register(request));
+        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body(this.authService.register(request));
     }
 
     public AuthController(AuthService authService) {

@@ -26,7 +26,7 @@ public class DashboardController {
 
     @GetMapping
     public ResponseEntity<DashboardResponse> getDashboard() {
-        return ResponseEntity.ok((Object)this.dashboardService.getDashboard());
+        return ResponseEntity.ok(this.dashboardService.getDashboard());
     }
 
     public DashboardController(DashboardService dashboardService) {

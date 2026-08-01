@@ -57,24 +57,24 @@ public class TaskController {
     @PostMapping(value={"/api/tasks/meeting/{meetingId}"})
     @PreAuthorize(value="hasAnyRole('R04_ADMIN','R05_DIRECTOR')")
     public ResponseEntity<List<TaskAssignmentResponse>> createForAbsent(@PathVariable Long meetingId, @Valid @RequestBody TaskRequest request, @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body((Object)this.taskService.createForAbsent(meetingId, request, userDetails.getUsername()));
+        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body(this.taskService.createForAbsent(meetingId, request, userDetails.getUsername()));
     }
 
     @GetMapping(value={"/api/tasks/my"})
     public ResponseEntity<List<TaskAssignmentResponse>> getMyAssignments(@AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok((Object)this.taskService.findMyAssignments(userDetails.getUsername()));
+        return ResponseEntity.ok(this.taskService.findMyAssignments(userDetails.getUsername()));
     }
 
     @GetMapping(value={"/api/tasks"})
     @PreAuthorize(value="hasAnyRole('R04_ADMIN','R05_DIRECTOR')")
     public ResponseEntity<List<TaskResponse>> getAllByRole(@AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok((Object)this.taskService.findAllByRole(userDetails.getUsername()));
+        return ResponseEntity.ok(this.taskService.findAllByRole(userDetails.getUsername()));
     }
 
     @GetMapping(value={"/api/tasks/{id}/assignments"})
     @PreAuthorize(value="hasAnyRole('R04_ADMIN','R05_DIRECTOR')")
     public ResponseEntity<List<TaskAssignmentResponse>> getAssignments(@PathVariable Long id) {
-        return ResponseEntity.ok((Object)this.taskService.getAssignments(id));
+        return ResponseEntity.ok(this.taskService.getAssignments(id));
     }
 
     @PostMapping(value={"/api/tasks/{id}/add-users"})
@@ -84,19 +84,19 @@ public class TaskController {
         if (userIds == null || userIds.isEmpty()) {
             throw new BusinessException("El campo 'userIds' es requerido.");
         }
-        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body((Object)this.taskService.addUsersToTask(id, userIds));
+        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body(this.taskService.addUsersToTask(id, userIds));
     }
 
     @GetMapping(value={"/api/tasks/meeting/{meetingId}/pending"})
     @PreAuthorize(value="hasAnyRole('R04_ADMIN','R05_DIRECTOR')")
     public ResponseEntity<List<TaskResponse>> getPendingByMeeting(@PathVariable Long meetingId) {
-        return ResponseEntity.ok((Object)this.taskService.findPendingByMeeting(meetingId));
+        return ResponseEntity.ok(this.taskService.findPendingByMeeting(meetingId));
     }
 
     @PutMapping(value={"/api/tasks/{id}"})
     @PreAuthorize(value="hasRole('R04_ADMIN')")
     public ResponseEntity<TaskResponse> update(@PathVariable Long id, @Valid @RequestBody TaskRequest request) {
-        return ResponseEntity.ok((Object)this.taskService.updateTask(id, request));
+        return ResponseEntity.ok(this.taskService.updateTask(id, request));
     }
 
     @DeleteMapping(value={"/api/tasks/{id}"})
@@ -109,25 +109,25 @@ public class TaskController {
     @PatchMapping(value={"/api/tasks/{id}/block"})
     @PreAuthorize(value="hasRole('R04_ADMIN')")
     public ResponseEntity<TaskResponse> blockTask(@PathVariable Long id) {
-        return ResponseEntity.ok((Object)this.taskService.blockTask(id));
+        return ResponseEntity.ok(this.taskService.blockTask(id));
     }
 
     @PatchMapping(value={"/api/tasks/{id}/unblock"})
     @PreAuthorize(value="hasRole('R04_ADMIN')")
     public ResponseEntity<TaskResponse> unblockTask(@PathVariable Long id) {
-        return ResponseEntity.ok((Object)this.taskService.unblockTask(id));
+        return ResponseEntity.ok(this.taskService.unblockTask(id));
     }
 
     @PatchMapping(value={"/api/task-assignments/{id}/status"})
     @PreAuthorize(value="hasRole('R04_ADMIN')")
     public ResponseEntity<TaskAssignmentResponse> changeStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        return ResponseEntity.ok((Object)this.taskService.changeAssignmentStatus(id, body.get("status")));
+        return ResponseEntity.ok(this.taskService.changeAssignmentStatus(id, body.get("status")));
     }
 
     @PostMapping(value={"/api/task-assignments/{id}/submit"})
     public ResponseEntity<TaskAssignmentResponse> submitQuiz(@PathVariable Long id, @RequestBody Map<String, Object> body, @AuthenticationPrincipal UserDetails userDetails) {
         List answers = ((List)body.get("answers")).stream().map(a -> a instanceof Number ? ((Number)a).intValue() : Integer.parseInt(a.toString())).collect(Collectors.toList());
-        return ResponseEntity.ok((Object)this.taskService.submitQuiz(id, answers, userDetails.getUsername()));
+        return ResponseEntity.ok(this.taskService.submitQuiz(id, answers, userDetails.getUsername()));
     }
 
     public TaskController(TaskService taskService) {

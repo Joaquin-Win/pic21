@@ -30,7 +30,7 @@ public class SpaController {
     public ResponseEntity<Resource> serveIndex() {
         ResponseEntity.BodyBuilder bodyBuilder = ResponseEntity.ok();
         CacheControl.noCache();
-        return ((ResponseEntity.BodyBuilder)((ResponseEntity.BodyBuilder)((ResponseEntity.BodyBuilder)bodyBuilder.cacheControl(CacheControl.noStore().mustRevalidate())).header("Pragma", new String[]{"no-cache"})).header("Expires", new String[]{"0"})).contentType(MediaType.TEXT_HTML).body((Object)INDEX_HTML);
+        return ((ResponseEntity.BodyBuilder)((ResponseEntity.BodyBuilder)((ResponseEntity.BodyBuilder)bodyBuilder.cacheControl(CacheControl.noStore().mustRevalidate())).header("Pragma", new String[]{"no-cache"})).header("Expires", new String[]{"0"})).contentType(MediaType.TEXT_HTML).body(INDEX_HTML);
     }
 }
 

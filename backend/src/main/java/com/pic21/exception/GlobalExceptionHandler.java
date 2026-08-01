@@ -68,7 +68,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(value={HttpMessageNotReadableException.class})
     public ResponseEntity<ErrorResponse> handleMalformedJson(HttpMessageNotReadableException ex, HttpServletRequest request) {
-        log.warn("[GlobalExceptionHandler] JSON malformado en {}: {}", (Object)request.getRequestURI(), (Object)ex.getMessage());
+        log.warn("[GlobalExceptionHandler] JSON malformado en {}: {}", request.getRequestURI(), ex.getMessage());
         return this.build(HttpStatus.BAD_REQUEST, "Bad Request", "El cuerpo de la solicitud es inv\u00e1lido o est\u00e1 mal formado. Verific\u00e1 el JSON enviado.", request);
     }
 
@@ -95,7 +95,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value={DataIntegrityViolationException.class})
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
         String rootMsg = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
-        log.warn("[Handler] DataIntegrityViolationException en {}: {}", (Object)request.getRequestURI(), (Object)rootMsg);
+        log.warn("[Handler] DataIntegrityViolationException en {}: {}", request.getRequestURI(), rootMsg);
         String message = rootMsg != null && (rootMsg.contains("unique") || rootMsg.contains("duplicate") || rootMsg.contains("Unique") || rootMsg.contains("llave duplicada")) ? "Registro duplicado. Ya existe un dato igual en el sistema." : (rootMsg != null && (rootMsg.contains("foreign key") || rootMsg.contains("violates foreign key") || rootMsg.contains("is still referenced") || rootMsg.contains("referential integrity")) ? "No se puede realizar esta acci\u00f3n porque el registro tiene datos asociados." : "No se pudo completar la operaci\u00f3n por un conflicto en los datos.");
         return this.build(HttpStatus.CONFLICT, "Conflict", message, request);
     }
@@ -145,7 +145,7 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String error, String message, HttpServletRequest request) {
-        return ResponseEntity.status((HttpStatusCode)status).body((Object)new ErrorResponse(LocalDateTime.now().toString(), status.value(), error, message, request.getRequestURI()));
+        return ResponseEntity.status((HttpStatusCode)status).body(new ErrorResponse(LocalDateTime.now().toString(), status.value(), error, message, request.getRequestURI()));
     }
     // â”€â”€ Estructura de respuesta de error â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public record ErrorResponse(

@@ -49,17 +49,17 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAll() {
-        return ResponseEntity.ok((Object)this.userService.findAll());
+        return ResponseEntity.ok(this.userService.findAll());
     }
 
     @GetMapping(value={"/{id}"})
     public ResponseEntity<UserResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok((Object)this.userService.findById(id));
+        return ResponseEntity.ok(this.userService.findById(id));
     }
 
     @PutMapping(value={"/{id}"})
     public ResponseEntity<UserResponse> updateProfile(@PathVariable Long id, @RequestBody UpdateUserRequest request, @AuthenticationPrincipal UserDetails me) {
-        return ResponseEntity.ok((Object)this.userService.updateProfile(id, request, me.getUsername()));
+        return ResponseEntity.ok(this.userService.updateProfile(id, request, me.getUsername()));
     }
 
     @PutMapping(value={"/{id}/roles"})
@@ -68,12 +68,12 @@ public class UserController {
         if (roles == null || roles.isEmpty()) {
             throw new BusinessException("El campo 'roles' es requerido y no puede estar vac\u00edo.");
         }
-        return ResponseEntity.ok((Object)this.userService.updateRoles(id, roles, me.getUsername()));
+        return ResponseEntity.ok(this.userService.updateRoles(id, roles, me.getUsername()));
     }
 
     @PatchMapping(value={"/{id}/toggle"})
     public ResponseEntity<UserResponse> toggleActivo(@PathVariable Long id, @AuthenticationPrincipal UserDetails me) {
-        return ResponseEntity.ok((Object)this.userService.toggleActivo(id, me.getUsername()));
+        return ResponseEntity.ok(this.userService.toggleActivo(id, me.getUsername()));
     }
 
     @DeleteMapping(value={"/{id}"})

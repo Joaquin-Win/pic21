@@ -54,24 +54,24 @@ public class NewsController {
 
     @GetMapping
     public ResponseEntity<List<NewsResponse>> getAll(@AuthenticationPrincipal UserDetails me) {
-        return ResponseEntity.ok((Object)this.newsService.findAll(me.getUsername()));
+        return ResponseEntity.ok(this.newsService.findAll(me.getUsername()));
     }
 
     @GetMapping(value={"/{id}"})
     public ResponseEntity<NewsResponse> getById(@PathVariable Long id, @AuthenticationPrincipal UserDetails me) {
-        return ResponseEntity.ok((Object)this.newsService.findById(id, me.getUsername()));
+        return ResponseEntity.ok(this.newsService.findById(id, me.getUsername()));
     }
 
     @PostMapping
     @PreAuthorize(value="hasRole('R04_ADMIN')")
     public ResponseEntity<NewsResponse> create(@Valid @RequestBody NewsRequest request, @AuthenticationPrincipal UserDetails me) {
-        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body((Object)this.newsService.create(request, me.getUsername()));
+        return ResponseEntity.status((HttpStatusCode)HttpStatus.CREATED).body(this.newsService.create(request, me.getUsername()));
     }
 
     @PutMapping(value={"/{id}"})
     @PreAuthorize(value="hasRole('R04_ADMIN')")
     public ResponseEntity<NewsResponse> update(@PathVariable Long id, @Valid @RequestBody NewsRequest request, @AuthenticationPrincipal UserDetails me) {
-        return ResponseEntity.ok((Object)this.newsService.update(id, request, me.getUsername()));
+        return ResponseEntity.ok(this.newsService.update(id, request, me.getUsername()));
     }
 
     @DeleteMapping(value={"/{id}"})
@@ -88,22 +88,22 @@ public class NewsController {
         if (url == null || url.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "URL es requerida"));
         }
-        return ResponseEntity.ok((Object)this.newsService.fetchOpenGraphPreview(url));
+        return ResponseEntity.ok(this.newsService.fetchOpenGraphPreview(url));
     }
 
     @PostMapping(value={"/{id}/like"})
     public ResponseEntity<NewsResponse> like(@PathVariable Long id, @AuthenticationPrincipal UserDetails me) {
-        return ResponseEntity.ok((Object)this.newsService.toggleReaction(id, me.getUsername(), NewsReaction.ReactionType.LIKE));
+        return ResponseEntity.ok(this.newsService.toggleReaction(id, me.getUsername(), NewsReaction.ReactionType.LIKE));
     }
 
     @PostMapping(value={"/{id}/dislike"})
     public ResponseEntity<NewsResponse> dislike(@PathVariable Long id, @AuthenticationPrincipal UserDetails me) {
-        return ResponseEntity.ok((Object)this.newsService.toggleReaction(id, me.getUsername(), NewsReaction.ReactionType.DISLIKE));
+        return ResponseEntity.ok(this.newsService.toggleReaction(id, me.getUsername(), NewsReaction.ReactionType.DISLIKE));
     }
 
     @DeleteMapping(value={"/{id}/reaction"})
     public ResponseEntity<NewsResponse> removeReaction(@PathVariable Long id, @AuthenticationPrincipal UserDetails me) {
-        return ResponseEntity.ok((Object)this.newsService.removeReaction(id, me.getUsername()));
+        return ResponseEntity.ok(this.newsService.removeReaction(id, me.getUsername()));
     }
 
     public NewsController(NewsService newsService) {

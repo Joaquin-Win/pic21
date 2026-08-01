@@ -74,7 +74,7 @@ public class NewsService {
     public NewsResponse create(NewsRequest request, String username) {
         Usuario creator = this.findUsuarioOrThrow(username);
         News news = News.builder().title(request.getTitle()).description(request.getDescription()).imageUrl(request.getImageUrl()).sourceUrl(request.getSourceUrl()).publishedAt(request.getPublishedAt() != null ? request.getPublishedAt() : LocalDateTime.now()).createdBy(creator).active(true).build();
-        News saved = (News)this.newsRepository.save((Object)news);
+        News saved = (News)this.newsRepository.save(news);
         log.info("Noticia creada: id={}, t\u00edtulo='{}', por='{}'", new Object[]{saved.getId(), saved.getTitle(), username});
         return this.mapToResponse(saved, creator.getId());
     }
@@ -90,15 +90,15 @@ public class NewsService {
         if (request.getPublishedAt() != null) {
             news.setPublishedAt(request.getPublishedAt());
         }
-        log.info("Noticia actualizada: id={}", (Object)id);
-        return this.mapToResponse((News)this.newsRepository.save((Object)news), userId);
+        log.info("Noticia actualizada: id={}", id);
+        return this.mapToResponse((News)this.newsRepository.save(news), userId);
     }
 
     @Transactional
     public void delete(Long id) {
         News news = this.findOrThrow(id);
-        this.newsRepository.delete((Object)news);
-        log.info("Noticia eliminada: id={}, t\u00edtulo='{}'", (Object)id, (Object)news.getTitle());
+        this.newsRepository.delete(news);
+        log.info("Noticia eliminada: id={}, t\u00edtulo='{}'", id, news.getTitle());
     }
 
     @Transactional
@@ -106,20 +106,20 @@ public class NewsService {
         News news = this.findOrThrow(newsId);
         Usuario user = this.findUsuarioOrThrow(username);
         Long userId = user.getId();
-        Optional existing = this.newsReactionRepository.findByNewsIdAndUsuarioId(newsId, userId);
+        Optional<NewsReaction> existing = this.newsReactionRepository.findByNewsIdAndUsuarioId(newsId, userId);
         if (existing.isPresent()) {
             NewsReaction reaction = (NewsReaction)existing.get();
             if (reaction.getReactionType() == type) {
-                this.newsReactionRepository.delete((Object)reaction);
+                this.newsReactionRepository.delete(reaction);
                 log.info("Reacci\u00f3n eliminada: news={}, user='{}', type={}", new Object[]{newsId, username, type});
             } else {
                 reaction.setReactionType(type);
-                this.newsReactionRepository.save((Object)reaction);
+                this.newsReactionRepository.save(reaction);
                 log.info("Reacci\u00f3n cambiada: news={}, user='{}', type={}", new Object[]{newsId, username, type});
             }
         } else {
             NewsReaction reaction = NewsReaction.builder().news(news).usuario(user).reactionType(type).build();
-            this.newsReactionRepository.save((Object)reaction);
+            this.newsReactionRepository.save(reaction);
             log.info("Reacci\u00f3n agregada: news={}, user='{}', type={}", new Object[]{newsId, username, type});
         }
         return this.mapToResponse(news, userId);
@@ -130,7 +130,7 @@ public class NewsService {
         Usuario user = this.findUsuarioOrThrow(username);
         News news = this.findOrThrow(newsId);
         this.newsReactionRepository.deleteByNewsIdAndUsuarioId(newsId, user.getId());
-        log.info("Reacci\u00f3n eliminada: news={}, user='{}'", (Object)newsId, (Object)username);
+        log.info("Reacci\u00f3n eliminada: news={}, user='{}'", newsId, username);
         return this.mapToResponse(news, user.getId());
     }
 
@@ -186,7 +186,7 @@ public class NewsService {
             log.info("OG preview para '{}': title={}, hasImage={}", new Object[]{url, result.containsKey("title"), result.containsKey("image")});
         }
         catch (Exception e) {
-            log.warn("Error al obtener OG preview de '{}': {}", (Object)url, (Object)e.getMessage());
+            log.warn("Error al obtener OG preview de '{}': {}", url, e.getMessage());
             result.put("error", "No se pudo obtener la vista previa: " + e.getMessage());
         }
         return result;
@@ -228,7 +228,7 @@ public class NewsService {
     }
 
     private News findOrThrow(Long id) {
-        return (News)this.newsRepository.findById((Object)id).orElseThrow(() -> new ResourceNotFoundException("Noticia", id));
+        return (News)this.newsRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Noticia", id));
     }
 
     private Usuario findUsuarioOrThrow(String username) {
