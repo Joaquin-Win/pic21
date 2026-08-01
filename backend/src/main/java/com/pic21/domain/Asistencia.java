@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -19,6 +19,7 @@
  *  org.hibernate.annotations.CreationTimestamp
  */
 package com.pic21.domain;
+import lombok.Builder;
 
 import com.pic21.domain.Asistencia;
 import com.pic21.domain.Reunion;
@@ -60,11 +61,6 @@ public class Asistencia {
     private static boolean $default$presente() {
         return true;
     }
-
-    public static AsistenciaBuilder builder() {
-        return new AsistenciaBuilder();
-    }
-
     public Long getId() {
         return this.id;
     }
@@ -109,6 +105,7 @@ public class Asistencia {
         this.presente = Asistencia.$default$presente();
     }
 
+    @Builder
     public Asistencia(Long id, Reunion reunion, Usuario usuario, LocalDateTime fechaRegistro, boolean presente) {
         this.id = id;
         this.reunion = reunion;

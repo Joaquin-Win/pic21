@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -8,6 +8,7 @@
  *  com.pic21.dto.response.TaskResponse$TaskResponseBuilder
  */
 package com.pic21.dto.response;
+import lombok.Builder;
 
 import com.pic21.domain.EstadoTarea;
 import com.pic21.dto.response.TaskAssignmentResponse;
@@ -32,6 +33,7 @@ public class TaskResponse {
     private long pendientes;
     private List<TaskAssignmentResponse> asignaciones;
 
+    @Builder
     TaskResponse(Long id, Long reunionId, String reunionTitulo, String titulo, String descripcion, String link, List<String> links, String questionsJson, EstadoTarea estado, Long creadoPorId, String creadoPorUsername, LocalDateTime createdAt, long totalAsignaciones, long pendientes, List<TaskAssignmentResponse> asignaciones) {
         this.id = id;
         this.reunionId = reunionId;
@@ -49,11 +51,6 @@ public class TaskResponse {
         this.pendientes = pendientes;
         this.asignaciones = asignaciones;
     }
-
-    public static TaskResponseBuilder builder() {
-        return new TaskResponseBuilder();
-    }
-
     public Long getId() {
         return this.id;
     }

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -7,6 +7,7 @@
  *  com.pic21.dto.response.MeetingResponse$MeetingResponseBuilder
  */
 package com.pic21.dto.response;
+import lombok.Builder;
 
 import com.pic21.domain.EstadoReunion;
 import com.pic21.dto.response.MeetingResponse;
@@ -31,6 +32,7 @@ public class MeetingResponse {
     private String creadoPorUsername;
     private LocalDateTime createdAt;
 
+    @Builder
     MeetingResponse(Long id, String titulo, String descripcion, LocalDateTime fechaInicio, EstadoReunion estado, String accessCode, String recordingLink, String presentacionLink, String newsLink, String activityLink, List<String> linksExtra, List<String> newsLinksExtra, String pdfFileName, boolean hasPdfFile, String creadoPorUsername, LocalDateTime createdAt) {
         this.id = id;
         this.titulo = titulo;
@@ -49,11 +51,6 @@ public class MeetingResponse {
         this.creadoPorUsername = creadoPorUsername;
         this.createdAt = createdAt;
     }
-
-    public static MeetingResponseBuilder builder() {
-        return new MeetingResponseBuilder();
-    }
-
     public Long getId() {
         return this.id;
     }

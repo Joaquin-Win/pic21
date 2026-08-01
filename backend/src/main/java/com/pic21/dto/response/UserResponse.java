@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -6,6 +6,7 @@
  *  com.pic21.dto.response.UserResponse$UserResponseBuilder
  */
 package com.pic21.dto.response;
+import lombok.Builder;
 
 import com.pic21.dto.response.UserResponse;
 import java.time.LocalDateTime;
@@ -27,6 +28,7 @@ public class UserResponse {
     private String carrera;
     private String passwordHash;
 
+    @Builder
     UserResponse(Long id, String username, String nombre, String apellido, boolean activo, LocalDateTime fechaRegistro, List<String> roles, String email, String dni, String correo, String correoInstitucional, String legajo, String carrera, String passwordHash) {
         this.id = id;
         this.username = username;
@@ -43,11 +45,6 @@ public class UserResponse {
         this.carrera = carrera;
         this.passwordHash = passwordHash;
     }
-
-    public static UserResponseBuilder builder() {
-        return new UserResponseBuilder();
-    }
-
     public Long getId() {
         return this.id;
     }

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -20,6 +20,7 @@
  *  org.hibernate.annotations.CreationTimestamp
  */
 package com.pic21.domain;
+import lombok.Builder;
 
 import com.pic21.domain.ArchivoReunion;
 import com.pic21.domain.Reunion;
@@ -61,11 +62,6 @@ public class ArchivoReunion {
     @CreationTimestamp
     @Column(name="uploaded_at", updatable=false)
     private LocalDateTime uploadedAt;
-
-    public static ArchivoReunionBuilder builder() {
-        return new ArchivoReunionBuilder();
-    }
-
     public Long getId() {
         return this.id;
     }
@@ -125,6 +121,7 @@ public class ArchivoReunion {
     public ArchivoReunion() {
     }
 
+    @Builder
     public ArchivoReunion(Long id, String fileName, String fileType, byte[] fileData, Reunion reunion, Usuario subidoPor, LocalDateTime uploadedAt) {
         this.id = id;
         this.fileName = fileName;

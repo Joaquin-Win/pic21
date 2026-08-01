@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -24,6 +24,7 @@
  *  org.hibernate.annotations.CreationTimestamp
  */
 package com.pic21.domain;
+import lombok.Builder;
 
 import com.pic21.domain.AsignacionTarea;
 import com.pic21.domain.EstadoTarea;
@@ -93,11 +94,6 @@ public class Tarea {
     private static List<AsignacionTarea> $default$asignaciones() {
         return new ArrayList<AsignacionTarea>();
     }
-
-    public static TareaBuilder builder() {
-        return new TareaBuilder();
-    }
-
     public Long getId() {
         return this.id;
     }
@@ -192,6 +188,7 @@ public class Tarea {
         this.asignaciones = Tarea.$default$asignaciones();
     }
 
+    @Builder
     public Tarea(Long id, Reunion reunion, String titulo, String descripcion, EstadoTarea estado, String link, String linksExtraJson, String questionsJson, Usuario creadoPor, List<AsignacionTarea> asignaciones, LocalDateTime createdAt) {
         this.id = id;
         this.reunion = reunion;

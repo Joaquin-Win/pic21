@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -6,6 +6,7 @@
  *  com.pic21.dto.response.AuthResponse$AuthResponseBuilder
  */
 package com.pic21.dto.response;
+import lombok.Builder;
 
 import com.pic21.dto.response.AuthResponse;
 import java.util.List;
@@ -20,6 +21,7 @@ public class AuthResponse {
     private String email;
     private List<String> roles;
 
+    @Builder
     AuthResponse(String token, String type, Long id, String username, String nombre, String apellido, String email, List<String> roles) {
         this.token = token;
         this.type = type;
@@ -30,11 +32,6 @@ public class AuthResponse {
         this.email = email;
         this.roles = roles;
     }
-
-    public static AuthResponseBuilder builder() {
-        return new AuthResponseBuilder();
-    }
-
     public String getToken() {
         return this.token;
     }

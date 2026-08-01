@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -6,6 +6,7 @@
  *  com.pic21.dto.response.AttendanceResponse$AttendanceResponseBuilder
  */
 package com.pic21.dto.response;
+import lombok.Builder;
 
 import com.pic21.dto.response.AttendanceResponse;
 import java.time.LocalDateTime;
@@ -22,6 +23,7 @@ public class AttendanceResponse {
     private boolean presente;
     private LocalDateTime fechaRegistro;
 
+    @Builder
     AttendanceResponse(Long id, Long reunionId, String reunionTitulo, Long usuarioId, String username, String nombre, String apellido, String email, boolean presente, LocalDateTime fechaRegistro) {
         this.id = id;
         this.reunionId = reunionId;
@@ -34,11 +36,6 @@ public class AttendanceResponse {
         this.presente = presente;
         this.fechaRegistro = fechaRegistro;
     }
-
-    public static AttendanceResponseBuilder builder() {
-        return new AttendanceResponseBuilder();
-    }
-
     public Long getId() {
         return this.id;
     }

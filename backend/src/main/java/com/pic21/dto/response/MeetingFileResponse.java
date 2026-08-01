@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -6,6 +6,7 @@
  *  com.pic21.dto.response.MeetingFileResponse$MeetingFileResponseBuilder
  */
 package com.pic21.dto.response;
+import lombok.Builder;
 
 import com.pic21.dto.response.MeetingFileResponse;
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ public class MeetingFileResponse {
     private LocalDateTime uploadedAt;
     private Long fileSize;
 
+    @Builder
     MeetingFileResponse(Long id, String fileName, String fileType, Long meetingId, String meetingTitle, String uploadedByUsername, LocalDateTime uploadedAt, Long fileSize) {
         this.id = id;
         this.fileName = fileName;
@@ -30,11 +32,6 @@ public class MeetingFileResponse {
         this.uploadedAt = uploadedAt;
         this.fileSize = fileSize;
     }
-
-    public static MeetingFileResponseBuilder builder() {
-        return new MeetingFileResponseBuilder();
-    }
-
     public Long getId() {
         return this.id;
     }

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -22,6 +22,7 @@
  *  org.hibernate.annotations.CreationTimestamp
  */
 package com.pic21.domain;
+import lombok.Builder;
 
 import com.pic21.domain.EstadoReunion;
 import com.pic21.domain.Reunion;
@@ -98,11 +99,6 @@ public class Reunion {
     private static String $default$newsLinksExtraJson() {
         return "[]";
     }
-
-    public static ReunionBuilder builder() {
-        return new ReunionBuilder();
-    }
-
     public Long getId() {
         return this.id;
     }
@@ -237,6 +233,7 @@ public class Reunion {
         this.newsLinksExtraJson = Reunion.$default$newsLinksExtraJson();
     }
 
+    @Builder
     public Reunion(Long id, String titulo, String descripcion, LocalDateTime fechaInicio, EstadoReunion estado, String accessCode, String recordingLink, String presentacionLink, String newsLink, String activityLink, String linksExtraJson, String newsLinksExtraJson, byte[] pdfFileData, String pdfFileName, Usuario creadoPor, LocalDateTime createdAt) {
         this.id = id;
         this.titulo = titulo;

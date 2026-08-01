@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -147,5 +147,13 @@ public class GlobalExceptionHandler {
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String error, String message, HttpServletRequest request) {
         return ResponseEntity.status((HttpStatusCode)status).body((Object)new ErrorResponse(LocalDateTime.now().toString(), status.value(), error, message, request.getRequestURI()));
     }
-}
+    // â”€â”€ Estructura de respuesta de error â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public record ErrorResponse(
+        String timestamp,
+        int    status,
+        String error,
+        String message,
+        String path
+    ) {}
 
+}

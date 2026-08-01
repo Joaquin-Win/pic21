@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -6,6 +6,7 @@
  *  com.pic21.dto.response.NewsResponse$NewsResponseBuilder
  */
 package com.pic21.dto.response;
+import lombok.Builder;
 
 import com.pic21.dto.response.NewsResponse;
 import java.time.LocalDateTime;
@@ -24,6 +25,7 @@ public class NewsResponse {
     private long dislikes;
     private String userReaction;
 
+    @Builder
     NewsResponse(Long id, String title, String description, String imageUrl, String sourceUrl, LocalDateTime publishedAt, LocalDateTime createdAt, String createdByUsername, boolean active, long likes, long dislikes, String userReaction) {
         this.id = id;
         this.title = title;
@@ -38,11 +40,6 @@ public class NewsResponse {
         this.dislikes = dislikes;
         this.userReaction = userReaction;
     }
-
-    public static NewsResponseBuilder builder() {
-        return new NewsResponseBuilder();
-    }
-
     public Long getId() {
         return this.id;
     }

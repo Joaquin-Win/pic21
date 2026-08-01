@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -8,6 +8,7 @@
  *  jakarta.persistence.Embeddable
  */
 package com.pic21.domain;
+import lombok.Builder;
 
 import com.pic21.domain.PerfilPersonal;
 import jakarta.persistence.Column;
@@ -19,11 +20,6 @@ public class PerfilPersonal {
     private String dni;
     @Column(name="correo", length=150)
     private String correo;
-
-    public static PerfilPersonalBuilder builder() {
-        return new PerfilPersonalBuilder();
-    }
-
     public String getDni() {
         return this.dni;
     }

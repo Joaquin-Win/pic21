@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -20,6 +20,7 @@
  *  org.hibernate.annotations.CreationTimestamp
  */
 package com.pic21.domain;
+import lombok.Builder;
 
 import com.pic21.domain.News;
 import com.pic21.domain.NewsReaction;
@@ -77,11 +78,6 @@ public class News {
     private static List<NewsReaction> $default$reactions() {
         return new ArrayList<NewsReaction>();
     }
-
-    public static NewsBuilder builder() {
-        return new NewsBuilder();
-    }
-
     public Long getId() {
         return this.id;
     }
@@ -167,6 +163,7 @@ public class News {
         this.reactions = News.$default$reactions();
     }
 
+    @Builder
     public News(Long id, String title, String description, String imageUrl, String sourceUrl, LocalDateTime publishedAt, LocalDateTime createdAt, Usuario createdBy, boolean active, List<NewsReaction> reactions) {
         this.id = id;
         this.title = title;

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -26,6 +26,7 @@
  *  org.hibernate.annotations.CreationTimestamp
  */
 package com.pic21.domain;
+import lombok.Builder;
 
 import com.pic21.domain.Credencial;
 import com.pic21.domain.PerfilEstudiantil;
@@ -102,11 +103,6 @@ public class Usuario {
     private static boolean $default$activo() {
         return true;
     }
-
-    public static UsuarioBuilder builder() {
-        return new UsuarioBuilder();
-    }
-
     public Long getId() {
         return this.id;
     }
@@ -192,6 +188,7 @@ public class Usuario {
         this.activo = Usuario.$default$activo();
     }
 
+    @Builder
     public Usuario(Long id, String nombre, String apellido, String username, Set<Rol> roles, LocalDateTime fechaRegistro, boolean activo, Credencial credencial, PerfilPersonal perfilPersonal, PerfilEstudiantil perfilEstudiantil) {
         this.id = id;
         this.nombre = nombre;

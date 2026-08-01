@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -22,6 +22,7 @@
  *  org.hibernate.annotations.CreationTimestamp
  */
 package com.pic21.domain;
+import lombok.Builder;
 
 import com.pic21.domain.News;
 import com.pic21.domain.NewsReaction;
@@ -59,11 +60,6 @@ public class NewsReaction {
     @CreationTimestamp
     @Column(name="created_at", updatable=false)
     private LocalDateTime createdAt;
-
-    public static NewsReactionBuilder builder() {
-        return new NewsReactionBuilder();
-    }
-
     public Long getId() {
         return this.id;
     }
@@ -107,6 +103,7 @@ public class NewsReaction {
     public NewsReaction() {
     }
 
+    @Builder
     public NewsReaction(Long id, News news, Usuario usuario, ReactionType reactionType, LocalDateTime createdAt) {
         this.id = id;
         this.news = news;
@@ -114,5 +111,10 @@ public class NewsReaction {
         this.reactionType = reactionType;
         this.createdAt = createdAt;
     }
-}
+    // â”€â”€ Tipo de reacciÃ³n (inner enum) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public enum ReactionType {
+        LIKE,
+        DISLIKE
+    }
 
+}

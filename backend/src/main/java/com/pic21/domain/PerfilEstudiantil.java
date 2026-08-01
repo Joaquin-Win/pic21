@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -8,6 +8,7 @@
  *  jakarta.persistence.Embeddable
  */
 package com.pic21.domain;
+import lombok.Builder;
 
 import com.pic21.domain.PerfilEstudiantil;
 import jakarta.persistence.Column;
@@ -21,11 +22,6 @@ public class PerfilEstudiantil {
     private String legajo;
     @Column(name="carrera", length=150)
     private String carrera;
-
-    public static PerfilEstudiantilBuilder builder() {
-        return new PerfilEstudiantilBuilder();
-    }
-
     public String getCorreoInstitucional() {
         return this.correoInstitucional;
     }
@@ -53,6 +49,7 @@ public class PerfilEstudiantil {
     public PerfilEstudiantil() {
     }
 
+    @Builder
     public PerfilEstudiantil(String correoInstitucional, String legajo, String carrera) {
         this.correoInstitucional = correoInstitucional;
         this.legajo = legajo;

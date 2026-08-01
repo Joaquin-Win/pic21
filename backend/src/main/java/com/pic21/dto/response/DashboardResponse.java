@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -7,6 +7,7 @@
  *  com.pic21.dto.response.DashboardResponse$MeetingStats
  */
 package com.pic21.dto.response;
+import lombok.Builder;
 
 import com.pic21.dto.response.DashboardResponse;
 import java.util.List;
@@ -17,17 +18,13 @@ public class DashboardResponse {
     private double globalAttendanceRate;
     private List<MeetingStats> meetingStats;
 
+    @Builder
     DashboardResponse(long totalMeetings, long totalAttendances, double globalAttendanceRate, List<MeetingStats> meetingStats) {
         this.totalMeetings = totalMeetings;
         this.totalAttendances = totalAttendances;
         this.globalAttendanceRate = globalAttendanceRate;
         this.meetingStats = meetingStats;
     }
-
-    public static DashboardResponseBuilder builder() {
-        return new DashboardResponseBuilder();
-    }
-
     public long getTotalMeetings() {
         return this.totalMeetings;
     }
@@ -43,5 +40,16 @@ public class DashboardResponse {
     public List<MeetingStats> getMeetingStats() {
         return this.meetingStats;
     }
-}
+    // â”€â”€ EstadÃ­sticas por reuniÃ³n (inner class) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    @Builder
+    @Getter
+    public static class MeetingStats {
+        private Long   meetingId;
+        private String meetingTitle;
+        private String meetingStatus;
+        private int    totalAttendances;
+        private int    totalStudents;
+        private double attendancePercentage;
+    }
 
+}

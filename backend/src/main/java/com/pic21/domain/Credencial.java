@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
@@ -13,6 +13,7 @@
  *  org.hibernate.annotations.UpdateTimestamp
  */
 package com.pic21.domain;
+import lombok.Builder;
 
 import com.pic21.domain.Credencial;
 import jakarta.persistence.Column;
@@ -48,11 +49,6 @@ public class Credencial {
     private static int $default$intentosFallidos() {
         return 0;
     }
-
-    public static CredencialBuilder builder() {
-        return new CredencialBuilder();
-    }
-
     public Long getId() {
         return this.id;
     }
@@ -105,6 +101,7 @@ public class Credencial {
         this.intentosFallidos = Credencial.$default$intentosFallidos();
     }
 
+    @Builder
     public Credencial(Long id, String email, String passwordHash, LocalDateTime ultimaActualizacion, int intentosFallidos, LocalDateTime bloqueadaHasta) {
         this.id = id;
         this.email = email;
