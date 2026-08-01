@@ -68,7 +68,7 @@ public class ExcelExportService {
     public byte[] exportAttendanceByMeeting(Long reunionId) {
         byte[] byArray;
         Reunion reunion = (Reunion)this.reunionRepository.findById(reunionId).orElseThrow(() -> new ResourceNotFoundException("Reuni\u00f3n", reunionId));
-        List asistencias = this.asistenciaRepository.findByReunionWithDetails(reunion);
+        List<Asistencia> asistencias = this.asistenciaRepository.findByReunionWithDetails(reunion);
         XSSFWorkbook workbook = new XSSFWorkbook();
         try {
             XSSFSheet sheet = workbook.createSheet("Asistencias");
@@ -140,7 +140,7 @@ public class ExcelExportService {
     @Transactional(readOnly=true)
     public byte[] exportAllAttendances() {
         byte[] byArray;
-        List reuniones = this.reunionRepository.findAll();
+        List<Reunion> reuniones = this.reunionRepository.findAll();
         XSSFWorkbook workbook = new XSSFWorkbook();
         try {
             XSSFSheet summary = workbook.createSheet("Resumen");
@@ -163,7 +163,7 @@ public class ExcelExportService {
             int totalGlobal = 0;
             int sheetIdx = 1;
             for (Reunion reunion : reuniones) {
-                List asistencias = this.asistenciaRepository.findByReunionWithDetails(reunion);
+        List<Asistencia> asistencias = this.asistenciaRepository.findByReunionWithDetails(reunion);
                 totalGlobal += asistencias.size();
                 Row sRow = summary.createRow(summaryRowNum++);
                 this.createDataCell(sRow, 0, reunion.getTitulo(), dataStyle);

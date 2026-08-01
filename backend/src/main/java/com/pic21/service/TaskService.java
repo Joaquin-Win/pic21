@@ -87,18 +87,18 @@ public class TaskService {
             throw new BusinessException("No se pueden crear tareas para una reuni\u00f3n NO_INICIADA.");
         }
         Usuario creator = (Usuario)this.usuarioRepository.findByUsernameIgnoreCase(creatorUsername).orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + creatorUsername));
-        List presentIds = this.asistenciaRepository.findByReunionWithDetails(reunion).stream().map(a -> a.getUsuario().getId()).collect(Collectors.toList());
-        List absentees = this.usuarioRepository.findAll().stream().filter(u -> u.getRoles().stream().anyMatch(ASSIGNABLE_ROLES::contains)).filter(u -> !presentIds.contains(u.getId())).collect(Collectors.toList());
+        List<Long> presentIds = this.asistenciaRepository.findByReunionWithDetails(reunion).stream().map(a -> a.getUsuario().getId()).collect(Collectors.toList());
+        List<Usuario> absentees = this.usuarioRepository.findAll().stream().filter(u -> u.getRoles().stream().anyMatch(ASSIGNABLE_ROLES::contains)).filter(u -> !presentIds.contains(u.getId())).collect(Collectors.toList());
         if (absentees.isEmpty()) {
             throw new BusinessException("Todos los estudiantes y ayudantes asistieron a '" + reunion.getTitulo() + "'. Sin ausentes.");
         }
         Tarea tarea = Tarea.builder().reunion(reunion).titulo(request.getTitle()).descripcion(request.getDescription()).link(this.resolvePrimaryLink(request)).linksExtraJson(this.serializeLinks(request.getLinks())).questionsJson(request.getQuestionsJson()).estado(EstadoTarea.PENDIENTE).creadoPor(creator).build();
         Tarea savedTarea = tarea = (Tarea)this.tareaRepository.save(tarea);
-        List toSave = absentees.stream().filter(u -> !this.asignacionTareaRepository.existsByTareaIdAndUsuarioId(savedTarea.getId(), u.getId())).map(u -> AsignacionTarea.builder().tarea(savedTarea).usuario(u).estado(EstadoTarea.PENDIENTE).build()).collect(Collectors.toList());
+        List<AsignacionTarea> toSave = absentees.stream().filter(u -> !this.asignacionTareaRepository.existsByTareaIdAndUsuarioId(savedTarea.getId(), u.getId())).map(u -> AsignacionTarea.builder().tarea(savedTarea).usuario(u).estado(EstadoTarea.PENDIENTE).build()).collect(Collectors.toList());
         if (toSave.isEmpty()) {
             throw new BusinessException("Ya existen asignaciones para todos los ausentes en esta tarea.");
         }
-        List saved = this.asignacionTareaRepository.saveAll(toSave);
+        List<AsignacionTarea> saved = this.asignacionTareaRepository.saveAll(toSave);
         log.info("Tarea id={} '{}' creada con {} asignaciones en reuni\u00f3n id={} por '{}'", new Object[]{savedTarea.getId(), request.getTitle(), saved.size(), reunionId, creatorUsername});
         return saved.stream().map(arg_0 -> this.mapAssignment(arg_0)).collect(Collectors.toList());
     }
@@ -113,7 +113,7 @@ public class TaskService {
     public List<TaskResponse> findAllByRole(String username) {
         Usuario usuario = (Usuario)this.usuarioRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + username));
         boolean isAdmin = usuario.getRoles().contains(Rol.R04_ADMIN);
-        List tareas = isAdmin ? this.tareaRepository.findAllWithDetails() : this.tareaRepository.findByCreadoPorIdOrderByCreatedAtDesc(usuario.getId());
+        List<Tarea> tareas = isAdmin ? this.tareaRepository.findAllWithDetails() : this.tareaRepository.findByCreadoPorIdOrderByCreatedAtDesc(usuario.getId());
         return tareas.stream().map(t -> this.mapTask(t, false)).collect(Collectors.toList());
     }
 
@@ -131,15 +131,15 @@ public class TaskService {
         if (tarea.getEstado() == EstadoTarea.BLOQUEADA) {
             throw new BusinessException("No se pueden agregar usuarios a una tarea bloqueada.");
         }
-        List usuarios = this.usuarioRepository.findAllById(userIds);
+        List<Usuario> usuarios = this.usuarioRepository.findAllById(userIds);
         if (usuarios.isEmpty()) {
             throw new BusinessException("No se encontraron usuarios con los IDs proporcionados.");
         }
-        List toSave = usuarios.stream().filter(u -> !this.asignacionTareaRepository.existsByTareaIdAndUsuarioId(tareaId, u.getId())).map(u -> AsignacionTarea.builder().tarea(tarea).usuario(u).estado(EstadoTarea.PENDIENTE).build()).collect(Collectors.toList());
+        List<AsignacionTarea> toSave = usuarios.stream().filter(u -> !this.asignacionTareaRepository.existsByTareaIdAndUsuarioId(tareaId, u.getId())).map(u -> AsignacionTarea.builder().tarea(tarea).usuario(u).estado(EstadoTarea.PENDIENTE).build()).collect(Collectors.toList());
         if (toSave.isEmpty()) {
             throw new BusinessException("Todos los usuarios seleccionados ya est\u00e1n asignados a esta tarea.");
         }
-        List saved = this.asignacionTareaRepository.saveAll(toSave);
+        List<AsignacionTarea> saved = this.asignacionTareaRepository.saveAll(toSave);
         log.info("Tarea id={} '{}': {} usuario(s) agregado(s) manualmente", new Object[]{tareaId, tarea.getTitulo(), saved.size()});
         return saved.stream().map(arg_0 -> this.mapAssignment(arg_0)).collect(Collectors.toList());
     }
@@ -149,7 +149,7 @@ public class TaskService {
         if (!this.reunionRepository.existsById(reunionId)) {
             throw new ResourceNotFoundException("Reuni\u00f3n", reunionId);
         }
-        List tareas = this.tareaRepository.findByReunionId(reunionId);
+        List<Tarea> tareas = this.tareaRepository.findByReunionId(reunionId);
         return tareas.stream().filter(t -> this.asignacionTareaRepository.countByTareaIdAndEstado(t.getId(), EstadoTarea.PENDIENTE) > 0L).map(t -> this.mapTask(t, false)).collect(Collectors.toList());
     }
 
@@ -244,7 +244,7 @@ public class TaskService {
         }
         ObjectMapper mapper = new ObjectMapper();
         try {
-            questions = (List)mapper.readValue(questionsJson, List.class);
+            questions = (List<Map<String, Object>>)(List<?>)mapper.readValue(questionsJson, List.class);
         }
         catch (Exception e) {
             throw new BusinessException("Error al leer las preguntas del quiz.");
@@ -255,7 +255,7 @@ public class TaskService {
         int correct = 0;
         for (int i = 0; i < questions.size(); ++i) {
             int expected;
-            Map q = (Map)questions.get(i);
+            Map<String, Object> q = questions.get(i);
             Object correctIdx = q.get("correct");
             int n = expected = correctIdx instanceof Number ? ((Number)correctIdx).intValue() : -1;
             if (answers.get(i) == null || answers.get(i) != expected) continue;
@@ -301,7 +301,7 @@ public class TaskService {
         if (raw != null && !raw.isBlank()) {
             try {
                 ObjectMapper mapper = new ObjectMapper();
-                List qs = (List)mapper.readValue(raw, (JavaType)mapper.getTypeFactory().constructCollectionType(List.class, Map.class));
+                List<Map<String, Object>> qs = (List<Map<String, Object>>)(List<?>)mapper.readValue(raw, (JavaType)mapper.getTypeFactory().constructCollectionType(List.class, Map.class));
                 qs.forEach(q -> q.remove("correct"));
                 safeQuestions = mapper.writeValueAsString(qs);
             }
@@ -326,7 +326,7 @@ public class TaskService {
         if (links == null || links.isEmpty()) {
             return "[]";
         }
-        List cleaned = links.stream().filter(l -> l != null && !l.isBlank()).map(String::trim).distinct().collect(Collectors.toList());
+        List<String> cleaned = links.stream().filter(l -> l != null && !l.isBlank()).map(String::trim).distinct().collect(Collectors.toList());
         try {
             return MAPPER.writeValueAsString(cleaned);
         }
@@ -339,7 +339,7 @@ public class TaskService {
         try {
             List parsed;
             List<String> cleaned;
-            if (linksJson != null && !linksJson.isBlank() && !(cleaned = (parsed = (List)MAPPER.readValue(linksJson, (JavaType)MAPPER.getTypeFactory().constructCollectionType(List.class, String.class))).stream().filter(l -> l != null && !l.isBlank()).map(String::trim).distinct().collect(Collectors.toList())).isEmpty()) {
+            if (linksJson != null && !linksJson.isBlank() && !(cleaned = (parsed = (List<String>)(List<?>)MAPPER.readValue(linksJson, (JavaType)MAPPER.getTypeFactory().constructCollectionType(List.class, String.class))).stream().filter(l -> l != null && !l.isBlank()).map(String::trim).distinct().collect(Collectors.toList())).isEmpty()) {
                 return cleaned;
             }
         }
