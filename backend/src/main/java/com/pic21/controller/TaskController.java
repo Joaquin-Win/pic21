@@ -126,7 +126,7 @@ public class TaskController {
 
     @PostMapping(value={"/api/task-assignments/{id}/submit"})
     public ResponseEntity<TaskAssignmentResponse> submitQuiz(@PathVariable Long id, @RequestBody Map<String, Object> body, @AuthenticationPrincipal UserDetails userDetails) {
-        List answers = ((List)body.get("answers")).stream().map(a -> a instanceof Number ? ((Number)a).intValue() : Integer.parseInt(a.toString())).collect(Collectors.toList());
+        List<Integer> answers = ((List<?>)body.get("answers")).stream().map(a -> a instanceof Number ? ((Number)a).intValue() : Integer.parseInt(a.toString())).collect(Collectors.toList());
         return ResponseEntity.ok(this.taskService.submitQuiz(id, answers, userDetails.getUsername()));
     }
 

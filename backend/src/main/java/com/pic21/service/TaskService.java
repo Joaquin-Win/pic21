@@ -226,7 +226,7 @@ public class TaskService {
 
     @Transactional
     public TaskAssignmentResponse submitQuiz(Long assignmentId, List<Integer> answers, String username) {
-        List questions;
+        List<Map<String, Object>> questions;
         AsignacionTarea asignacion = (AsignacionTarea)this.asignacionTareaRepository.findById(assignmentId).orElseThrow(() -> new ResourceNotFoundException("Asignaci\u00f3n", assignmentId));
         Usuario usuario = (Usuario)this.usuarioRepository.findByUsernameIgnoreCase(username).or(() -> this.usuarioRepository.findByCredencial_EmailIgnoreCase(username)).orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + username));
         if (!asignacion.getUsuario().getId().equals(usuario.getId())) {
@@ -337,7 +337,7 @@ public class TaskService {
 
     private List<String> deserializeLinks(String linksJson, String fallbackLink) {
         try {
-            List parsed;
+            List<String> parsed;
             List<String> cleaned;
             if (linksJson != null && !linksJson.isBlank() && !(cleaned = (parsed = (List<String>)(List<?>)MAPPER.readValue(linksJson, (JavaType)MAPPER.getTypeFactory().constructCollectionType(List.class, String.class))).stream().filter(l -> l != null && !l.isBlank()).map(String::trim).distinct().collect(Collectors.toList())).isEmpty()) {
                 return cleaned;

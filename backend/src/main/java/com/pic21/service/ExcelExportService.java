@@ -133,7 +133,7 @@ public class ExcelExportService {
                 throw new RuntimeException("Error al generar el archivo Excel", e);
             }
         }
-        workbook.close();
+        try { workbook.close(); } catch (IOException e) { throw new RuntimeException("Error cerrando workbook", e); }
         return byArray;
     }
 
@@ -228,7 +228,7 @@ public class ExcelExportService {
                 throw new RuntimeException("Error al generar el archivo Excel global", e);
             }
         }
-        workbook.close();
+        try { workbook.close(); } catch (IOException e) { throw new RuntimeException("Error cerrando workbook", e); }
         return byArray;
     }
 
