@@ -248,17 +248,17 @@ const LoginPage = (() => {
             </div>
           </div>` : ''}
 
-          <!-- DNI solo para Egresado/Docente/EstudPosgrado | Legajo solo para Estudiante -->
-          ${esEstudiante ? `
-          <div class="form-group">
-            <label class="form-label">Legajo *</label>
-            <input class="form-control" id="regLegajo" placeholder="Ej: 12345" required maxlength="20" />
-          </div>` : `
+          <!-- DNI solo para Egresado/Docente | Legajo para Estudiante y EstudiantePosgrado -->
+          ${esEgresadoDocente ? `
           <div class="form-group">
             <label class="form-label">DNI * <small style="font-weight:400;color:#888;">(8 dígitos, sin puntos ni espacios)</small></label>
             <input class="form-control" id="regDni" placeholder="Ej: 12345678"
                    required maxlength="8" inputmode="numeric"
                    pattern="[0-9]{8}" title="El DNI debe tener exactamente 8 dígitos numéricos" />
+          </div>` : `
+          <div class="form-group">
+            <label class="form-label">Legajo *</label>
+            <input class="form-control" id="regLegajo" placeholder="Ej: 12345" required maxlength="20" />
           </div>`}
 
           <!-- Campo carrera solo para Estudiantes -->
@@ -411,14 +411,14 @@ const LoginPage = (() => {
 
     // ── Validación DNI / Legajo ─────────────────────────────
     let legajoValue = '';
-    if (esEstudiante) {
+    if (esEstudiante || esEstudPosgrado) {
       legajoValue = document.getElementById('regLegajo')?.value.trim() || '';
       if (!legajoValue) {
         showError('El legajo es obligatorio.');
         return;
       }
     } else {
-      // Egresado, Docente y Estudiante Posgrado: requieren DNI
+      // Egresado, Docente: requieren DNI
       const dniRaw = document.getElementById('regDni')?.value.trim() || '';
       if (!dniRaw) {
         showError('El DNI es obligatorio.');
@@ -471,7 +471,7 @@ const LoginPage = (() => {
       rol:         rol,
       legajo:      legajoValue,
       carrera:     carrera,
-      dni:         esEstudiante ? null : legajoValue,
+      dni:         esEgresadoDocente ? legajoValue : null,
     };
 
     try {

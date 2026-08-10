@@ -415,39 +415,42 @@ const TasksPage = (() => {
   }
 
   function renderAssignmentsPanel(panel, taskId, taskTitle, assignments, isAdmin) {
-    if (!assignments.length) {
-      panel.innerHTML = `<div class="card"><div class="card-body"><p style="color:var(--text-muted)">Sin asignaciones.</p></div></div>`;
-      return;
-    }
+    const tableHtml = assignments.length ? `
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Usuario</th>
+              <th>Nombre</th>
+              <th>Estado</th>
+              <th>Score</th>
+              <th>Intentos</th>
+              ${isAdmin ? '<th style="text-align:center">Cambiar estado</th>' : ''}
+            </tr>
+          </thead>
+          <tbody>
+            ${assignments.map((a, i) => assignmentRow(a, i + 1, isAdmin)).join('')}
+          </tbody>
+        </table>
+      </div>` : `<p style="color:var(--text-muted);margin:0">Sin asignaciones aún.</p>`;
+
     panel.innerHTML = `
       <div class="card">
         <div class="card-header">
           <span class="card-title">👥 Asignaciones — ${escHtml(taskTitle)}</span>
-          <span class="text-sm" style="color:var(--text-muted)">${assignments.length} usuario(s)</span>
-        </div>
-        <div class="card-body" style="padding:0">
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Usuario</th>
-                  <th>Nombre</th>
-                  <th>Estado</th>
-                  <th>Score</th>
-                  <th>Intentos</th>
-                  ${isAdmin ? '<th style="text-align:center">Cambiar estado</th>' : ''}
-                </tr>
-              </thead>
-              <tbody>
-                ${assignments.map((a, i) => assignmentRow(a, i + 1, isAdmin)).join('')}
-              </tbody>
-            </table>
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <span class="text-sm" style="color:var(--text-muted)">${assignments.length} usuario(s)</span>
+            ${isAdmin ? `<button type="button" class="btn btn-secondary btn-sm" id="btnAssignUserToTask">👤 Asignar usuario</button>` : ''}
           </div>
+        </div>
+        <div class="card-body" style="padding:${assignments.length ? '0' : '1rem'}">
+          ${tableHtml}
         </div>
       </div>`;
 
     if (isAdmin) {
+      document.getElementById('btnAssignUserToTask')?.addEventListener('click', () => openAssignUsersModal(taskId, assignments, isAdmin));
       panel.querySelectorAll('.assignment-status-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const assignmentId = Number(btn.dataset.aid);
@@ -662,6 +665,66 @@ const TasksPage = (() => {
         btn.disabled = false; btn.textContent = '📩 Enviar respuestas';
       }
     });
+  }
+
+  // ─── MODAL ASIGNAR USUARIO A TAREA ────────────────────────
+  async function openAssignUsersModal(taskId, assignments, isAdmin) {
+    Modal.open('👤 Asignar usuario a tarea', '<div class="loading"><div class="spinner"></div></div>');
+    try {
+      const allUsers = await Api.get('/users');
+      const assignedUsernames = new Set(assignments.map(a => a.username));
+      const ASSIGNABLE = ['R02_ESTUDIANTE','R03_EGRESADO','R06_AYUDANTE','R07_ESTUDIANTE_POSGRADO','R01_PROFESOR'];
+      const available = allUsers.filter(u =>
+        !assignedUsernames.has(u.username) &&
+        (u.roles || []).some(r => ASSIGNABLE.includes(r))
+      ).sort((a, b) => (a.nombre||'').localeCompare(b.nombre||''));
+
+      const body = document.getElementById('modal-body');
+      if (!body) return;
+
+      if (!available.length) {
+        body.innerHTML = '<p style="color:var(--text-muted)">Todos los usuarios ya están asignados a esta tarea.</p><div style="text-align:right;margin-top:1rem"><button class="btn btn-secondary" onclick="Modal.close()">Cerrar</button></div>';
+        return;
+      }
+
+      body.innerHTML = `
+        <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:.75rem">
+          Seleccioná los usuarios a asignar:
+        </p>
+        <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);padding:.5rem">
+          ${available.map(u => `
+            <label style="display:flex;align-items:center;gap:.6rem;padding:.4rem .5rem;cursor:pointer;border-radius:4px" class="assign-user-row">
+              <input type="checkbox" class="assign-user-cb" value="${u.id}" style="width:16px;height:16px;cursor:pointer" />
+              <span>${escHtml(u.nombre)} ${escHtml(u.apellido)}
+                <span style="color:var(--text-muted);font-size:.8rem">(${escHtml(u.username)})</span>
+              </span>
+            </label>
+          `).join('')}
+        </div>
+        <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1rem">
+          <button class="btn btn-secondary" onclick="Modal.close()">Cancelar</button>
+          <button class="btn btn-primary" id="btnConfirmAssignUsers">✅ Asignar seleccionados</button>
+        </div>`;
+
+      document.getElementById('btnConfirmAssignUsers')?.addEventListener('click', async () => {
+        const selected = [...document.querySelectorAll('.assign-user-cb:checked')].map(cb => Number(cb.value));
+        if (!selected.length) { Toast.warn('Aviso', 'Seleccioná al menos un usuario'); return; }
+        const btn = document.getElementById('btnConfirmAssignUsers');
+        btn.disabled = true; btn.textContent = 'Asignando...';
+        try {
+          await Api.post(`/tasks/${taskId}/add-users`, { userIds: selected });
+          Modal.close();
+          Toast.success('Asignados', `${selected.length} usuario(s) asignados correctamente`);
+          await loadAndRenderAssignments(taskId, isAdmin);
+        } catch(err) {
+          Toast.error('Error', err.message);
+          btn.disabled = false; btn.textContent = '✅ Asignar seleccionados';
+        }
+      });
+    } catch(err) {
+      const body = document.getElementById('modal-body');
+      if (body) body.innerHTML = `<p style="color:#ef4444">Error al cargar usuarios: ${escHtml(err.message)}</p>`;
+    }
   }
 
   return { render };

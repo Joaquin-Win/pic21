@@ -92,12 +92,19 @@ public class AuthService {
         boolean grupoB = this.isGrupoB(rol);
         PerfilPersonal perfilPersonal = null;
         if (grupoA) {
-            String dni;
-            String string = dni = request.getDni() != null ? request.getDni().trim() : "";
-            if (dni.isEmpty() || !dni.matches("^\\d{8}$")) {
-                throw new BusinessException("DNI obligatorio (8 d\u00edgitos) para Grupo A.");
+            if (rol == Rol.R07_ESTUDIANTE_POSGRADO) {
+                String legajo = request.getLegajo() != null ? request.getLegajo().trim() : "";
+                if (legajo.isEmpty()) {
+                    throw new BusinessException("El legajo es obligatorio para Estudiante Posgrado.");
+                }
+                perfilPersonal = PerfilPersonal.builder().dni(legajo).correo(request.getCorreo()).build();
+            } else {
+                String dni = request.getDni() != null ? request.getDni().trim() : "";
+                if (dni.isEmpty() || !dni.matches("^\\d{8}$")) {
+                    throw new BusinessException("DNI obligatorio (8 d\u00edgitos) para Grupo A.");
+                }
+                perfilPersonal = PerfilPersonal.builder().dni(dni).correo(request.getCorreo()).build();
             }
-            perfilPersonal = PerfilPersonal.builder().dni(dni).correo(request.getCorreo()).build();
         }
         PerfilEstudiantil perfilEstudiantil = null;
         if (grupoB) {

@@ -16,7 +16,7 @@ import jakarta.persistence.Embeddable;
 
 @Embeddable
 public class PerfilPersonal {
-    @Column(name="dni", length=8)
+    @Column(name="dni", length=20)
     private String dni;
     @Column(name="correo", length=150)
     private String correo;

@@ -55,7 +55,16 @@ public class UserService {
 
     @Transactional(readOnly=true)
     public List<UserResponse> findAll() {
-        return this.usuarioRepository.findAll().stream().map(arg_0 -> ((AuthService)this.authService).mapToUserResponse(arg_0)).collect(Collectors.toList());
+        return this.usuarioRepository.findAll().stream()
+            .sorted((a, b) -> {
+                int c = a.getNombre() != null && b.getNombre() != null
+                    ? a.getNombre().compareToIgnoreCase(b.getNombre()) : 0;
+                if (c != 0) return c;
+                return a.getApellido() != null && b.getApellido() != null
+                    ? a.getApellido().compareToIgnoreCase(b.getApellido()) : 0;
+            })
+            .map(u -> this.authService.mapToUserResponse(u))
+            .collect(Collectors.toList());
     }
 
     @Transactional(readOnly=true)
