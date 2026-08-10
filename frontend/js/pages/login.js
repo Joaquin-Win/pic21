@@ -210,15 +210,15 @@ const LoginPage = (() => {
             </div>
           </div>
 
-          <!-- Email: Estudiante requiere @soysiglo.21.edu.ar -->
+          <!-- Email: Estudiante y EstudiantePosgrado requieren @soysiglo.21.edu.ar -->
           <div class="form-group">
             <label class="form-label">
-              ${esEstudiante
+              ${(esEstudiante || esEstudPosgrado)
                 ? 'Correo SoySiglo * <small style="font-weight:400;color:#888;">(@soysiglo.21.edu.ar)</small>'
                 : 'Correo electrónico *'}
             </label>
             <input class="form-control" id="regEmail" type="email"
-                   placeholder="${esEstudiante ? 'usuario@soysiglo.21.edu.ar' : 'correo@ejemplo.com'}"
+                   placeholder="${(esEstudiante || esEstudPosgrado) ? 'usuario@soysiglo.21.edu.ar' : 'correo@ejemplo.com'}"
                    required />
           </div>
 
@@ -228,13 +228,8 @@ const LoginPage = (() => {
             <small style="color:#888;font-size:.78rem;">Debe incluir: 1 mayúscula, 1 número y 1 símbolo (@#$!. etc)</small>
           </div>
           <div class="form-group">
-            <label class="form-label">Tipo de usuario *</label>
-            <select class="form-control" id="regTipoUsuario" required>
-              <option value="">Seleccioná...</option>
-              <option value="Estudiante">Estudiante</option>
-              <option value="Egresado">Egresado</option>
-              <option value="EstudiantePosgrado">Estudiante Posgrado</option>
-            </select>
+            <label class="form-label">Repetir contraseña *</label>
+            <input class="form-control" id="regPassword2" type="password" placeholder="Repetí tu contraseña" required autocomplete="new-password" />
           </div>
 
           <!-- Egresado/Docente: elegir Egresado o Profesor (no aplica para Estudiante Posgrado) -->
@@ -389,7 +384,7 @@ const LoginPage = (() => {
       showError('El correo electrónico es obligatorio.');
       return;
     }
-    if (esEstudiante && !email.endsWith('@soysiglo.21.edu.ar')) {
+    if ((esEstudiante || esEstudPosgrado) && !email.endsWith('@soysiglo.21.edu.ar')) {
       showError('El correo debe ser de la institución (@soysiglo.21.edu.ar).');
       return;
     }
