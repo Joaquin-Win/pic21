@@ -71,7 +71,7 @@ public class Usuario {
     @ElementCollection(fetch=FetchType.EAGER)
     @Enumerated(value=EnumType.STRING)
     @CollectionTable(name="usuario_roles", joinColumns={@JoinColumn(name="usuario_id")})
-    @Column(name="rol", length=20)
+    @Column(name="rol", length=50)
     private Set<Rol> roles;
     @CreationTimestamp
     @Column(name="fecha_registro", updatable=false)
