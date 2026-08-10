@@ -1,5 +1,4 @@
 package com.pic21.config;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -12,13 +11,29 @@ public class SchemaFixRunner implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(SchemaFixRunner.class);
     private final JdbcTemplate jdbc;
     public SchemaFixRunner(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+
     @Override
     public void run(ApplicationArguments args) {
-        alter("usuario_roles", "rol", "varchar(50)");
-        alter("usuarios", "dni", "varchar(20)");
+        fixColumn("usuario_roles", "rol", 50);
+        fixColumn("usuarios", "dni", 20);
     }
-    private void alter(String t, String c, String type) {
-        try { jdbc.execute("ALTER TABLE " + t + " ALTER COLUMN " + c + " TYPE " + type); log.info("[SchemaFix] {}.{} ok", t, c); }
-        catch (Exception e) { log.debug("[SchemaFix] skip {}.{}", t, c); }
+
+    private void fixColumn(String table, String col, int target) {
+        try {
+            Integer cur = jdbc.queryForObject(
+                "SELECT character_maximum_length FROM information_schema.columns " +
+                "WHERE table_schema='public' AND table_name=? AND column_name=?",
+                Integer.class, table, col);
+            log.info("[SchemaFix] {}.{} = varchar({})", table, col, cur);
+            if (cur == null || cur < target) {
+                String sql = String.format(
+                    "ALTER TABLE %s ALTER COLUMN %s TYPE varchar(%d) USING %s::varchar(%d)",
+                    table, col, target, col, target);
+                jdbc.execute(sql);
+                log.info("[SchemaFix] {}.{} -> varchar({}) OK", table, col, target);
+            }
+        } catch (Exception e) {
+            log.error("[SchemaFix] FAILED {}.{}: {}", table, col, e.getMessage());
+        }
     }
 }
