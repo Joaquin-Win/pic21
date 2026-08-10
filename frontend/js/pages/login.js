@@ -378,6 +378,7 @@ const LoginPage = (() => {
     const email = document.getElementById('regEmail').value.trim();
     const esEstudiante      = tipoUsuario === 'Estudiante';
     const esEstudPosgrado   = tipoUsuario === 'EstudiantePosgrado';
+    const esEgresadoDocente = !esEstudiante && !esEstudPosgrado;
 
     // ── Validación email por tipo ─────────────────
     if (!email) {
