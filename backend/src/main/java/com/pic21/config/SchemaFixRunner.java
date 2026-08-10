@@ -14,8 +14,11 @@ public class SchemaFixRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        // Fix VARCHAR lengths
         fixColumn("usuario_roles", "rol", 50);
-        fixColumn("usuarios", "dni", 20);
+        fixColumn("usuarios",      "dni", 20);
+        // Drop Hibernate-generated CHECK constraints that block new enum values
+        dropConstraint("usuario_roles", "usuario_roles_rol_check");
     }
 
     private void fixColumn(String table, String col, int target) {
@@ -26,14 +29,22 @@ public class SchemaFixRunner implements ApplicationRunner {
                 Integer.class, table, col);
             log.info("[SchemaFix] {}.{} = varchar({})", table, col, cur);
             if (cur == null || cur < target) {
-                String sql = String.format(
+                jdbc.execute(String.format(
                     "ALTER TABLE %s ALTER COLUMN %s TYPE varchar(%d) USING %s::varchar(%d)",
-                    table, col, target, col, target);
-                jdbc.execute(sql);
+                    table, col, target, col, target));
                 log.info("[SchemaFix] {}.{} -> varchar({}) OK", table, col, target);
             }
         } catch (Exception e) {
-            log.error("[SchemaFix] FAILED {}.{}: {}", table, col, e.getMessage());
+            log.error("[SchemaFix] FAILED fixColumn {}.{}: {}", table, col, e.getMessage());
+        }
+    }
+
+    private void dropConstraint(String table, String constraint) {
+        try {
+            jdbc.execute("ALTER TABLE " + table + " DROP CONSTRAINT IF EXISTS " + constraint);
+            log.info("[SchemaFix] Dropped constraint {} on {}", constraint, table);
+        } catch (Exception e) {
+            log.error("[SchemaFix] FAILED dropConstraint {} on {}: {}", constraint, table, e.getMessage());
         }
     }
 }
