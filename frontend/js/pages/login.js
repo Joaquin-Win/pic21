@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   PIC UES-SIGLO21 — Login Page (con registro público)
+   PIC UES-SIGLO21 — Login Page (con registro público) v2
    CAMBIOS:
      · Texto subtítulo actualizado a "Sistema de encuentro pic"
      · Botón "Registrarse" muestra pantalla intermedia de selección de tipo
