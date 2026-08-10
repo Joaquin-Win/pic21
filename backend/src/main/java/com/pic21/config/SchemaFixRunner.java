@@ -1,4 +1,4 @@
-﻿package com.pic21.config;
+package com.pic21.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,15 +14,11 @@ public class SchemaFixRunner implements ApplicationRunner {
     public SchemaFixRunner(JdbcTemplate jdbc) { this.jdbc = jdbc; }
     @Override
     public void run(ApplicationArguments args) {
-        alterColumn("usuario_roles", "rol", "varchar(50)");
-        alterColumn("usuarios",      "dni", "varchar(20)");
+        alter("usuario_roles", "rol", "varchar(50)");
+        alter("usuarios", "dni", "varchar(20)");
     }
-    private void alterColumn(String table, String column, String type) {
-        try {
-            jdbc.execute("ALTER TABLE " + table + " ALTER COLUMN " + column + " TYPE " + type);
-            log.info("[SchemaFix] {}.{} -> {}", table, column, type);
-        } catch (Exception e) {
-            log.debug("[SchemaFix] skip {}.{}: {}", table, column, e.getMessage());
-        }
+    private void alter(String t, String c, String type) {
+        try { jdbc.execute("ALTER TABLE " + t + " ALTER COLUMN " + c + " TYPE " + type); log.info("[SchemaFix] {}.{} ok", t, c); }
+        catch (Exception e) { log.debug("[SchemaFix] skip {}.{}", t, c); }
     }
 }
